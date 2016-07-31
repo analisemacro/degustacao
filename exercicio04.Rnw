@@ -1,0 +1,490 @@
+<<Exercicio04, echo=FALSE, cache=FALSE>>=
+set_parent('ebook.Rnw')
+@
+
+\section{Como os desembolsos do BNDES e a taxa de investimento se relacionam?}
+
+\textbf{A Avenida Chile, no centro do Rio de Janeiro, sedia um prédio imponente: o Banco Nacional de Desenvolvimento Econômico e Social (BNDES), um dos maiores bancos estatais de fomento do planeta. Nos últimos dez anos, o BNDES foi protagonista de uma volta ao nacional desenvolvimentismo praticado no país nas décadas de 50 a 70 do século passado. A ideia dessa corrente de pensamento é que o Estado deve liderar uma estratégia de desenvolvimento, baseada na associação com empresas privadas estratégicas. Para o BNDES, em particular, coube a tarefa de ser o braço financeiro da operação, financiando a aquisição de máquinas e equipamentos, construção civil, fusões e aquisições. O objetivo era fazer a economia se desenvolver pela via do investimento. No quarto exercício do \textcolor{Navy}{Códigos de Inverno 2016} queremos entender a relação entre os desembolsos do BNDES e a taxa de investimento da economia brasileira. Esperamos que a leitura seja agradável e os códigos elegantes!}      
+
+%%%%%%%%%%%%%%%%%%%%%%%% CONTEÚDO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Scripts e pacotes}
+
+Antes de mais nada, vamos carregar scripts externos e os pacotes que vamos usar. O código abaixo faz isso.\footnote{Caso não tenha algum pacote instalado, o faça com a função \texttt{install.packages}.} Os scripts externos, a propósito, vão em anexo ao arquivo fonte desse exercício, disponível na área restrita. \footnote{Sobre o script \texttt{bcb.R}, ver a Nota Técnica nº 01 do Clube.}
+\\
+<<Codigo34, echo=T, results='hide',  size='footnotesize'>>=
+
+### Script Externo
+source('bcb.R')
+
+### Pacotes 
+library(XLConnect)
+library(vars)
+library(TStools)
+library(vars)
+library(aod)
+library(urca)
+@
+
+\subsection{Importação e tratamento de dados}
+
+Os dados que utilizaremos nesse exercício estão divididos em quatro blocos. O primeiro bloco vem do arquivo \texttt{exercicio04.csv}, que está disponível na área restrita do \textcolor{Navy}{Clube do Código}. Ele contém duas séries trimestrais, com início em 1996T4, a saber: o Produto Interno Bruto (PIB) em valores correntes e a Formação Bruta de Capital Fixo (FBCF) em relação ao PIB.\footnote{As séries de PIB e FBCF estão acumuladas em quatro trimestres.} Importe para o R e transforme em série temporal com o código abaixo.
+\\
+<<Codigo35, echo=T, results='hide',  size='footnotesize'>>=
+
+### Bloco 01 - PIB e FBCF
+bloco1 <- ts(read.csv(file='exercicio04.csv',
+                   header=T,sep=";",dec=","),
+          start=c(1996,4), freq=4)
+
+@
+
+O segundo bloco vem do site do Banco Nacional de Desenvolvimento Econômico e Social (BNDES). Baixaremos a planilha de \emph{desembolsos mensais do Sistema BNDES por Setor CNAE} com o código abaixo.\footnote{Classificação Nacional de Atividades Econômicas (CNAE)} 
+\\
+<<Codigo36, echo=T, results='hide',  size='footnotesize'>>=
+
+### Baixar planilha desembolsos mensais do Sistema BNDES por Setor CNAE
+
+temp <- tempfile()
+download.file('http://www.bndes.gov.br/SiteBNDES/export/sites/default/bndes_pt/Galerias/Arquivos/empresa/estatisticas/Int2_1D_m_setorCNAE.xls',
+              destfile=temp, mode='wb')
+@
+
+Uma vez baixada a planilha, carregue a mesma no R com a função \texttt{loadWorkbook} do pacote \texttt{XLConnect} e leia apenas a coluna 49, que se refere ao total de desembolsos com a função \texttt{readWorksheet}, como no código abaixo.
+\\
+<<Codigo37, echo=T, results='hide',  size='footnotesize'>>=
+
+### Carregar e ler planilha
+
+bloco2 <- loadWorkbook(temp)
+bloco2 <- readWorksheet(bloco2, sheet = 1, header = TRUE, 
+                      startRow = 5)[,49]
+@
+
+Um problema dessa planilha do BNDES é que ela é agrupada por anos, de modo que entre um ano e outro, há sempre um \emphh{missing value} e também o desembolso agregado. Nós devemos, portanto, retirar essas linhas, para então podermos transformar os dados em série temporal. O código abaixo faz isso.\footnote{Você pode pensar em uma forma melhor de fazer isso. Para \emph{missing values}, há a função \texttt{complete.cases}. E os dados agregados, como lidar com eles?}
+\\
+<<Codigo38, echo=T, results='hide',  size='footnotesize'>>=
+
+### Retirar linhas com NA e valores anuais
+bloco2 <- bloco2[-c(13,14,27,28,41,42,55,56,69,70,83,84,
+                            97,98,111,112,125,126,139,140,153,154,
+                            167,168,181,182,195,196,209,210,223,224,228)]
+
+### Transformar em série temporal 
+bloco2 <- ts(bloco2, start=c(2000,1), freq=12)
+
+@
+
+<<Codigo39, echo=F, results='hide',  size='footnotesize'>>=
+
+bndes <- bloco2
+
+@
+
+O terceiro bloco vem do Sistema Gerenciador de Séries Temporais do Banco Central. Importaremos para o R com o código abaixo as séries 4382, 2007 e 2043, referentes ao PIB mensal e ao estoque de crédito provido por instituições públicas e privadas, respectivamente. Ademais, também transformaremos os dados em séries temporais.
+\\
+<<Codigo40, echo=T, results='hide',  size='footnotesize'>>=
+
+### Dados de entrada
+series <- c(4382, 2007, 2043)
+names <- c('PIB Mensal', 'CREDPUB', 'CREDPRIV')
+start <- c(1996,10)
+freq <- 12
+inicio <- '01/10/1996'
+fim <- '01/12/2015'
+
+### Bloco 3 - PIB, Crédito Público e Privado
+data <- getSeries(series, data.ini = inicio,
+                        data.fim = fim)
+
+### Organizar e transformar em série temporal
+matrix <- matrix(NA, ncol=length(series), nrow=nrow(data)/length(series))
+
+for(i in 1:length(series)){
+  
+  matrix[,i] <- data$valor[data$serie==series[i]]  
+
+  matrix <- ts(matrix, start=start, freq=freq)
+
+  colnames(matrix) <- names
+  
+  bloco3 <- matrix
+}
+
+
+@
+
+O quarto bloco é composto pelos créditos do Tesouro junto à instituições financeiras oficiais. Esse dado vem da planilha \emph{Dívida Líquida e Bruta do Governo Geral}, disponível no site do Banco Central. Vamos pegar os dados que queremos com o código abaixo.
+\\
+<<Codigo41, echo=T, results='hide',  size='footnotesize'>>=
+
+### Bloco 04 - Créditos do Tesouro junto à Instituições Oficiais
+temp <- tempfile()
+download.file("http://www.bcb.gov.br/ftp/notaecon/Divggnp.zip",temp)
+divida <- unzip(temp, files='Divggnp.xls')
+divida <- loadWorkbook(divida)
+divida <- ts(t(readWorksheet(divida, sheet = "% PIB", header = TRUE, 
+                        colTypes = 'numeric')[40:41,-c(1:2)]),
+             start=c(2006,12), freq=12)*-1
+colnames(divida) <- c('Híbrido', 'Crédito ao BNDES')
+bloco4 <- divida
+
+@
+
+Uma vez importados esses quatro blocos, temos quatro objetos no R: \texttt{bloco1}, \texttt{bloco2}, \texttt{bloco3} e \texttt{bloco4}. As séries que estão nos blocos 1 e 2 serão utilizadas no exercício entre os desembolsos do BNDES e a taxa de investimento, enquanto as séries dos blocos 3 e 4 serão para introduzir o exercício. Desse modo, para facilitar nossas incursões, vamos juntar os blocos 1 e 2.
+
+Para fazer isso, um problema imediato é que os desembolsos do BNDES referem-se a dados mensais. No nosso exercício, nós vamos verificar a relação entre esses dados e a FBCF, logo precisamos tornar as séries comparáveis. Vamos, assim, acumular esses dados em termos anuais e depois vamos mudar a frequência, de mensal para trimestral, para podermos normalizá-los pelo PIB. Tudo isso é feito com o código abaixo.
+\\
+<<Codigo42, echo=T, results='hide',  size='footnotesize'>>=
+
+### Anualizar dados do BNDES
+anual <- bloco2
+anual <- (anual+lag(anual,-1)+lag(anual,-2)+lag(anual,-3)+
+              lag(anual,-4)+lag(anual,-5)+lag(anual,-6)+
+              lag(anual,-7)+lag(anual,-8)+lag(anual,-9)+
+              lag(anual,-10)+lag(anual,-11))
+
+### Trimestralizar desembolsos do BNDES
+bloco2 <- ts(aggregate(anual, nfrequency = 4, FUN=mean),
+                start=c(2001,1), freq=4)
+
+### Normalizar desembolsos pelo PIB
+bloco2 <- (bloco2/bloco1[,1])*100
+
+@
+
+Nesse contexto, podemos agora juntar a série de FBCF com os desembolsos do BNDES. Isso é feito no código abaixo.
+\\
+<<Codigo43, echo=T, results='hide',  size='footnotesize'>>=
+
+data <- ts.intersect(bloco2, bloco1[,2])
+colnames(data) <- c('BNDES', 'FBCF')
+
+@
+
+Temos, por suposto, o objeto \texttt{data} sobre o qual faremos nosso exercício. Para justificar a escolha desse tema, vamos utilizar os blocos 3 e 4 de dados. De modo a facilitar o entendimento, vamos normalizar o estoque de crédito pelo PIB com o código abaixo.
+\\
+<<Codigo44, echo=T, results='hide',  size='footnotesize'>>=
+
+### Normalizar Crédito pelo PIB
+credito <- (bloco3[,2:3]/bloco3[,1])*100
+colnames(credito) <- c('CREDPUB', 'CREDPRIV')
+
+@
+
+Por fim, vamos renomear o bloco 4 como \texttt{cgg}, referente a \texttt{créditos do governo geral} com o código abaixo.
+\\
+<<Codigo45, echo=T, results='hide',  size='footnotesize'>>=
+
+cgg <- bloco4
+
+@
+
+Pronto, leitor, agora podemos começar nosso exercício!
+
+\subsection{Exercício}
+
+A saída de Antonio Palocci do governo, no início de 2006, deflagrou uma série de mudanças na condução da política econômica. Em particular, houve o entendimento do Palácio do Planalto de que era preciso liderar medidas que fizessem a taxa de investimento da economia brasileira aumentar. Para tanto, os bancos públicos foram acionados com o objetivo de financiar a aquisição de máquinas e equipamentos, construção civil, fusões e aquisições. 
+
+Para cumprir esse objetivo, o Tesouro passou a emitir títulos, sobretudo a partir de 2008, repassando os valores arrecadados para instituições financeiras oficiais. Em contrapartida, registrou-se na dívida bruta o valor repassado como crédito junto a essas instituições. A figura 16 ilustra a evolução desse montante. O BNDES, como pode ser visto, recebeu a maior parte desses recursos.
+
+<<Codigo46, echo=F, results='asis',  fig.cap = 'O governo passou a capitalizar os bancos públicos com o objetivo de aumentar a taxa de investimento. Os dados são do Tesouro Nacional.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+plot(cgg[,1]+cgg[,2], col='red', bty='l',
+     xlab='', ylab='', xaxt='n',lwd=2)
+axis(1, at=c(2006:2016))
+lines(cgg[,2], col='midnightblue', lwd=2)
+grid(,col='darkgray')
+legend('bottomright', legend=c('CGG Total', 'CGG BNDES'),
+       col=c('red', 'midnightblue'), lwd=c(2,2), 
+       bty='n')
+mtext('Créditos do Governo Geral junto à instituições financeiras oficiais (% PIB)',
+      side=3, line = 1, font=2)
+
+@
+
+Há diversas consequências que podem ser vistas desse processo. Três, entretanto, se destacam, sendo duas imediatas. O estoque da dívida pública aumenta, bem como o fluxo de subsídios. Isto porque, o passivo do governo é remunerado por taxas mais elevadas do que o ativo junto àquelas instituições financeiras, implicando em um diferencial positivo que deve ser incorporado ao orçamento. 
+
+Uma outra consequência desse tipo de prática pode ser visto na figura 17. A capitalização dos bancos públicos fez com que aumentasse sua participação no estoque de crédito total. Com efeito, houve impacto na condução da política monetária. Isto porque, os empréstimos do BNDES e de outros bancos públicos são remunerados por taxas de juros menores do que as praticadas no mercado. Mudanças, portanto, da taxa de juros pelo Banco Central não tem efeitos sobre esses empréstimos.\footnote{Sobre isso, ver o exercício \href{http://www.vitorwilher.com/economia/politica-monetaria/a-expansao-do-bndes-fez-mal-a-economia-brasileira-evidencias-da-politica-monetaria/}{\emph{A expansão do BNDES fez mal à economia brasileira: evidências da política monetária}.}} 
+
+<<Codigo47, echo=F, results='asis',  fig.cap = 'Os dados mostram que o crédito público passou a aumentar muito antes da crise internacional. Os dados são do Banco Central.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+plot(credito[,1], col='red', bty='l',
+     xlab='', ylab='', xlim=c(1997, 2016), xaxt='n',lwd=2)
+axis(1, at=c(1997:2016))
+lines(credito[,2], col='midnightblue', lwd=2)
+abline(v=c(2006, 2009), col='black')
+grid(,col='darkgray')
+legend('bottomright', legend=c('Público', 'Privado'),
+       col=c('red', 'midnightblue'), lwd=c(2,2), 
+       bty='n')
+mtext('Estoque de Crédito Público vs. Privado (% PIB)',
+      side=3, line = 1, font=2)
+
+@
+
+A figura 17 também mostra que a expansão do \textbf{crédito público} é anterior aos efeitos da crise financeira internacional, em sintonia com aquela mudança de política econômica em gestação no Palácio do Planalto. O plano era claro: liderar uma estratégia de desenvolvimento, baseada na associação com empresas privadas consideradas estratégicas. E o papel do BNDES era de protagonismo. 
+
+Dado o esforço de endividamento e coordenação feito pelo Palácio do Planalto, cabe perguntar se a estratégia deu certo. A figura 18 traz a evolução da Formação Bruta de Capital Fixo (FBCF) acumulada em quatro trimestres em relação ao PIB desde 2001. A série mostra um aumento entre 2007 e 2011, com estagnação e queda nos períodos seguintes. 
+
+<<Codigo48, echo=F, results='asis',  fig.cap = 'A taxa de investimento não reagiu conforme o esperado pelo governo. Os dados são do IBGE.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+plot(data[,2], col='red', bty='l',
+     xlab='', ylab='', xaxt='n',lwd=2)
+axis(1, at=c(2001:2016))
+abline(v=c(2007,2011), col='black')
+grid(,col='darkgray')
+mtext('Formação Bruta de Capital Fixo (% PIB)',
+      side=3, line = 1, font=2)
+
+@
+
+Com efeito, se estamos interessados em avaliar a correção da estratégia do Planalto, um primeiro exercício que podemos fazer é verificar a relação dos empréstimos feitos pelos bancos públicos com a taxa de investimento. A ideia aqui é simples. Os desembolsos do BNDES, na medida que são financiados com recursos públicos, bem como implicam em custos não desprezíveis para a eficiência econômica, têm forte relação com a taxa de investimento? Em outras palavras, é possível dizer que o aumento nos desembolsos leva a aumentos significativos da taxa de investimento? Para iniciar nosso entendimento sobre essas e outras questões, precisamos primeiro entender como as duas séries se relacionam. É o que faremos na sequência do exercício. 
+
+\subsubsection{Os desembolsos do BNDES}
+
+O BNDES, em um esforço de maior transparência, tem disponibilizado em seu site informações sobre os seus empréstimos. A figura 19 ilustra o comportamento dos desembolsos do banco desde janeiro de 2000 até dezembro do ano passado. O volume desembolsado pelo banco tinha média mensal de R\$ 3,06 bilhões até 2006, passando para mais de R\$ 11 bilhões a partir de 2007. 
+
+<<Codigo49, echo=F, results='asis',  fig.cap = 'Os desembolsos do BNDES aumentaram sensivelmente nos últimos anos.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+plot(bndes, lwd=1, lty=1, col='black', bty='l', xlab='',
+     ylab='R$ milhões', xaxt='n', main='')
+axis(1, at=c(2000:2016))
+lines(cmav(bndes), col='red', lwd=2)
+
+grid(nx=10, ny=10, col='lightgray')
+
+mtext('Desembolsos do BNDES (R$ milhões)', 3, line=1, font=2)
+
+
+@
+
+Feito o adequado tratamento dessa série de desembolsos, como visto na seção anterior, podemos nos perguntar sobre a relação dela com a taxa de investimento da economia brasileira. Um primeiro olhar sobre isso é feito na figura 20, quando plotamos a correlação entre as séries. 
+
+<<Codigo50, echo=F, results='asis',  fig.cap = 'A correlação entre as séries é bastante positiva.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+plot(as.vector(data[,1]), as.vector(data[,2]), 
+     xlab='Desembolsos do BNDES (% PIB)', ylab='FBCF (% PIB)')
+fitline <- lm(data[,2]~data[,1])
+abline(fitline, col='red', lwd=2)
+grid(, col='darkgray')
+mtext('FBCF vs. Desembolsos do BNDES (% PIB)')
+
+@
+
+Como mostra o gráfico, as séries estão positivamente correlacionadas ao longo do tempo. Nesse contexto, vale perguntar se existe direção de causalidade entre elas, i.e., se os desembolsos do BNDES exercem influência na taxa de investimento ou vice-versa. Antes de fazer esse tipo de exercício, contudo, nós vamos investigar a estacionariedade da série.\footnote{Os códigos dos gráficos foram propositalmente não colocados, dado que são de conhecimento do público do Clube. Qualquer dúvida, entretanto, basta consultar o arquivo fonte.} 
+
+\subsubsection{Estacionariedade das séries}
+
+A figura 21 coloca as séries de desembolsos do BNDES e FBCF lado a lado. São séries trimestrais, normalizadas pelo PIB, conforme visto na seção anterior. Para verificar se as séries são estacionárias, seguimos o protocolo contido em \cite{pfaff2008}.
+
+<<Codigo51, echo=F, results='asis',  fig.cap = 'Os desembolsos do BNDES versus a taxa de investimento da economia brasileira.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+par(mfrow=c(1,2))
+plot(data[,1], lwd=1, lty=1, col='black', bty='l', xlab='',
+     ylab='% PIB', main='Desembolsos do BNDES')
+plot(data[,2], lwd=1, lty=1, col='blue', bty='l', xlab='',
+     ylab='% PIB', main='FBCF')
+
+@
+
+Como o assunto foi devidamente explicado no exercício anterior, nós colocamos todo o procedimento no código 52 do arquivo fonte. Ao aplicar o protocolo de \cite{pfaff2008}, chega-se à conclusão que as séries são ambas integradas de ordem 1. Isso nos permite checar, portanto, se existe uma relação de cointegração entre as séries, antes de proceder um teste de causalidade. É o que fazemos a seguir. 
+
+<<Codigo52, eval=F, size='footnotesize'>>=
+
+lag1 <- 5
+lag2 <- 2
+
+### Teste ADF para série em nível
+
+adf.t1 <- ur.df(data[,1], type='trend', lags=lag1)
+adf.t2 <- ur.df(data[,2], type='trend', lags=lag2)
+
+adf.d1 <- ur.df(data[,1], type='drift', lags=lag1)
+adf.d2 <- ur.df(data[,2], type='drift', lags=lag2)
+
+adf.n1 <- ur.df(data[,1], type='none', lags=lag1)
+adf.n2 <- ur.df(data[,2], type='none', lags=lag2)
+
+
+
+lag1dif <- 4
+lag2dif <- 2
+
+### Teste ADF para 1ª diferença
+
+adf.t1.dif <- ur.df(diff(data[,1]), type='trend', lags=lag1dif)
+adf.t2.dif <- ur.df(diff(data[,2]), type='trend', lags=lag2dif)
+
+adf.d1.dif <- ur.df(diff(data[,1]), type='drift', lags=lag1dif)
+adf.d2.dif <- ur.df(diff(data[,2]), type='drift', lags=lag2dif)
+
+adf.n1.dif <- ur.df(diff(data[,1]), type='none', lags=lag1dif)
+adf.n2.dif <- ur.df(diff(data[,2]), type='none', lags=lag2dif)
+
+
+@
+
+\subsubsection{Cointegração}
+
+Para verificar se as séries são cointegradas, vamos usar a metodologia contida em \cite{cointegracao} e ilustrada por \cite{pfaff2008}. No R, utilizamos a função \texttt{ca.jo} para implementar o procedimento de Johansen, como nos códigos abaixo. Aplicamos a função para o máximo autovalor e para o teste do traço.
+\\
+<<Codigo57, echo=T, results='markup',  fig.cap = 'Estabilidade do VAR(6).', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+jo.eigen <- ca.jo(data, type='eigen', K=6, ecdet='const', 
+                  spec='transitory')
+summary(jo.eigen)
+@
+
+Pelo teste de máximo autovalor, é possível rejeitar ao nível de 5\% a hipótese de que não há nenhum vetor de cointegração, bem como não se pode rejeitar a hipótese de o número de vetores de cointegração ser menor ou igual a 1. O mesmo, a propósito, pode ser visto no teste do traço.
+\\
+<<Codigo58, echo=T, results='markup',  fig.cap = 'Estabilidade do VAR(6).', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+jo.trace <- ca.jo(data, type='trace', K=6, ecdet='const', 
+                  spec='transitory')
+summary(jo.trace)
+
+@
+
+Em outros termos, há ao menos um vetor de cointegração entre a FBCF e os desembolsos do BNDES, de modo que podemos estimar um Vetor de Correção de Erros (VEC).
+
+\subsubsection{Vetor de Correção de Erros}
+
+Para estimar o VEC, vamos utilizar a função \texttt{cajorls} do pacote \texttt{urca}, como abaixo.
+\\
+<<Codigo59, echo=T, results='markup',  fig.cap = 'Estabilidade do VAR(6).', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+vec <- cajorls(jo.eigen, r=1)
+vec$beta # Vetor de Cointegração Normalizado
+vec$rlm # VECM com r=1
+
+@
+
+Por fim, vamos transformar o VEC em um modelo VAR em nível com a função \texttt{vec2var}, como abaixo, para poder fazer uma análise de \emph{impulso-resposta} e de \emph{decomposição de variância}.
+\\
+<<Codigo60, echo=T, results='markup',  fig.cap = 'Estabilidade do VAR(6).', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+vec.level <- vec2var(jo.eigen, r=1)
+
+@
+
+Feita a transformação, vamos fazer uma análise de impulso-resposta. Para isso, vamos usar a função \texttt{irf} do pacote \texttt{vars}. Primeiro, damos um impulso nos desembolsos do BNDES e vemos a resposta sobre a FBCF.
+\\
+<<Codigo61, echo=T, results='markup',  fig.cap = 'Resposta a impulso nos desembolsos do BNDES..', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+irf.fbcf <- irf(vec.level, impulse='BNDES', response='FBCF',
+                 boot = T, n.ahead=24)
+plot(irf.fbcf)
+@
+
+Agora, vamos fazer o caso contrário.
+\\
+<<Codigo62, echo=T, results='markup',  fig.cap = 'Resposta a impulso na FBCF.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+irf.bndes <- irf(vec.level, impulse='FBCF', response='BNDES',
+                 boot = T, n.ahead=24)
+plot(irf.bndes)
+
+@
+
+Como o leitor pode observar, tanto a FBCF reage a choques sobre os desembolsos do BNDES quanto o contrário também ocorre. Por fim, podemos fazer a decomposição de variância com a função \texttt{fevd} do pacote \texttt{vars}, como abaixo.
+\\
+<<Codigo63, echo=T, results='markup',  fig.cap = 'Estabilidade do VAR(6).', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+fevd(vec.level, n.ahead=12)
+
+@
+
+Os resultados da decomposição mostram que a variância dos desembolsos do BNDES é em grande parte explicada pela FBCF, passados 12 trimestres. Já a variância da FBCF mantém-se, no modelo estimado, explicada pela própria FBCF, mesmo passados 12 trimestres. 
+
+\subsubsection{O procedimento de Toda-Yamamoto}
+
+A literatura econométrica tem citado comumente o procedimento contido em \cite{toda} para o Teste de Causalidade de Granger em séries integradas de ordem maior ou igual a 1. Em linhas gerais, o procedimento consiste em realizar ajuste para que a estatística do teste de Wald siga a distribuição assintótica $\chi^2$. Os seguintes passos devem ser seguidos:\footnote{Para outros detalhes, ver \href{http://davegiles.blogspot.com.br/2011/04/testing-for-granger-causality.html}{o post do Dave Giles sobre como implementar esse procedimento no Eviews} e \href{http://www.christophpfeiffer.org/2012/11/07/toda-yamamoto-implementation-in-r/}{o post de Christoph Feiffer sobre como implementar no R}. Os códigos de R, a propósito, foram retirados desse último exemplo.}
+
+\begin{enumerate}
+
+  \item Verificar a ordem de integração das variáveis através de testes de raiz unitária e estacionariedade;
+  
+  \item Definir a ordem máxima (m) de integração entre as variáveis;
+  
+  \item Montar o VAR em nível para as variáveis;
+  
+  \item Determinar a ordem de defasagem do VAR(p) pelos critérios de informação tradicionais;
+  
+  \item Ver a estabilidade do modelo, em particular problemas de autocorrelação;
+  
+  \item Se estiver tudo certo, adicionar m defasagens ao VAR, de modo que você terá um VAR(p+m);
+  
+  \item Rodar o teste de Wald com p coeficientes e p graus de liberdade.
+  
+
+\end{enumerate}
+
+Sabemos da subseção anterior que as séries são integradas de ordem 1, logo m é igual a 1. Nesses termos, vamos para o R montar o VAR em nível para as variáveis. Antes, vamos definir a quantidade de defasagens com a função \texttt{VARselect} do pacote \texttt{vars}.
+\\
+<<Codigo53, echo=T, results='markup',  fig.cap = 'Os desembolsos do BNDES versus a taxa de investimento da economia brasileira.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+### Selecionar Defasagem
+def <- VARselect(data,lag.max=12,type="both")
+def$selection 
+
+@
+
+Os critérios de informação retornaram 2, 3 e 6 defasagens. Vamos, então, construir o VAR com a função de mesmo nome do pacote \texttt{vars}, bem como testar se há autocorrelação com o \texttt{Portmanteau Test}, implementado na função \texttt{serial.test}. 
+\\
+<<Codigo54, echo=T, results='markup',  fig.cap = 'Os desembolsos do BNDES versus a taxa de investimento da economia brasileira.', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+### VAR(2)
+var2 <- VAR(data, p=2, type='both')
+serial.test(var2)
+
+### VAR(3)
+var3 <- VAR(data, p=3, type='both')
+serial.test(var3)
+
+### VAR(6)
+var6 <- VAR(data, p=6, type='both')
+serial.test(var6)
+
+@
+
+O VAR(6) parece ter menos problemas de autocorrelação.\footnote{A hipótese nula é que não há autocorrelação.} Vamos ver a estabilidade desse modelo com a função \texttt{stability}.
+\\
+<<Codigo55, echo=T, results='asis',  fig.cap = 'Estabilidade do VAR(6).', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+plot(stability(var6))
+
+@
+
+A figura 24 mostra que está tudo ok com o VAR(6), de modo que podemos prosseguir com o procedimento proposto por \cite{toda}. Com efeito, vamos adicionar m ao VAR(6), de modo a ter um VAR(7). Desse modo, agora assim, podemos proceder o teste de Wald. O código abaixo faz isso.
+\\
+<<Codigo56, echo=T, results='markup',  fig.cap = 'Estabilidade do VAR(6).', fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+var7 <- VAR(data, p=7, type='both')
+
+### Wald Test 01: FBCF não granger causa BNDES
+
+wald.test(b=coef(var7$varresult[[1]]), Sigma=vcov(var7$varresult[[1]]), 
+          Terms=c(2,4,6,8,10,12))
+
+### Wald Test 02: BNDES não granger causa FBCF
+
+wald.test(b=coef(var7$varresult[[2]]), Sigma=vcov(var7$varresult[[2]]), 
+          Terms= c(1,3,5,7,9,11))
+
+@
+
+\textbf{Em ambos os testes, não podemos rejeitar a hipótese nula. Em outras palavras, não encontramos evidências de que os desembolsos do BNDES granger causam a taxa de investimento ou vice-versa}.\footnote{Como dito nos passos do procedimento, nós não incluimos a 7ª defasagem no teste de Wald, dado que a mesma serve apenas para garantir que a estatística do teste de Wald siga a distribuição assintótica $\chi^2$.} Significa dizer, leitor, que nossos resultados são conflitantes. Ora, se encontramos evidências de que as séries são cointegradas, deveríamos ter encontrado causalidade em ao menos uma direção. O motivo desse conflito pode estar no tamanho da série, que pode não ter sido suficiente para garantir a distribuição assintótica dos testes.   
+
+
+\subsection{Discussões Finais}
+
+O exercício procurou verificar de que forma os desembolsos do BNDES e a taxa de investimento da economia brasileira estão relacionados. Observou-se uma relação de cointegração entre as séries, mas não conseguimos afirmar causalidade, um conflito bastante sério. 
+
+Em um exercício de \emph{impulso-resposta}, observou-se que os desembolsos do BNDES reagem positivamente a choques na FBCF, mas o contrário também ocorre. Os efeitos, a propósito, parecem ser permanentes, em ambos os casos. 
+
+Uma evidência interessante encontrada é que a variância dos desembolsos do BNDES é em grande parte explicada pela FBCF, passados 12 trimestres. O contrário não ocorre nesse sentido, de modo que passado o mesmo intervalo, a variância da FBCF continua sendo explica por ela própria, no modelo estimado. 
+
+Dado o conflito que encontramos, contudo, todos esses resultados devem ser avaliados com cuidado, além de novos esforços serem necessários para melhor compreender a relação entre as séries. Esperamos, por fim, que o exercício tenha ajudado o leitor a entender melhor determinados conceitos e temas econométricos, com o uso de problemas reais da economia brasileira. 
+
+
