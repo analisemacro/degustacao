@@ -1,0 +1,490 @@
+
+%tipo de arquivo gerado
+\documentclass[svgnames, 11pt]{beamer}
+\usetheme{Hannover}
+%\usetheme{CambridgeUS}
+\usetheme{Boadilla}
+
+
+%Pacotes a serem usados
+%\usepackage{beamerthemesplit}
+% \usepackage[utf8]{inputenc}  Briga com T1 fontenc
+\usepackage[T1]{fontenc}
+\usepackage[portuguese]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{dcolumn}
+\usepackage[round]{natbib}
+\bibliographystyle{kbib}
+\newtheorem{mydef}{Definition}
+
+
+%title page
+\makeatletter
+\setbeamertemplate{title page}
+{
+  \vbox{}
+  \vfill
+  \begin{centering}
+  {\usebeamercolor[fg]{titlegraphic}\inserttitlegraphic\par}
+    \bigskip
+    \begin{beamercolorbox}[sep=8pt,center]{title}
+      \usebeamerfont{title}\inserttitle\par%
+      \vskip0.25em%
+      \ifx\insertsubtitle\@empty%
+      \else%
+        \vskip0.25em%
+        {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par}%
+      \fi%     
+    \end{beamercolorbox}%
+    \vskip1em\par
+    \begin{beamercolorbox}[sep=8pt,center]{author}
+      \usebeamerfont{author}\insertauthor
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center]{institute}
+      \usebeamerfont{institute}\insertinstitute
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center]{date}
+      \usebeamerfont{date}\insertdate
+    \end{beamercolorbox}\vskip0.5em
+  \end{centering}
+  \vfill
+}
+\makeatother
+
+\titlegraphic{\includegraphics[width=3.5cm]{logo.png}}
+
+\author{Vítor Wilher} 
+\title{Imil na Sala de Aula - USP/São Carlos}
+\subtitle{{\textbf{Notas do Fundo do Poço: onde está a saída para a economia brasileira?}}}
+\institute{\href{http://www.analisemacro.com.br}{analisemacro.com.br}}
+\date{\today}
+
+
+
+\begin{document}
+
+\frame{\titlepage} 
+
+\frame{\frametitle{O plano de voo para hoje}\tableofcontents} 
+
+\section{Sobre o Autor}
+
+\begin{frame}
+  \frametitle{Sobre o Autor}
+
+\begin{quote}
+\textbf{Vítor Wilher} é Bacharel e Mestre em Economia, pela Universidade Federal Fluminense. Sócio da Análise Macro Treinamento e Consultoria, empresa especializada em análise de dados, construção de cenários e previsões. É também Visiting Professor da Universidade Veiga de Almeida e Conselheiro do Instituto Millenium.  
+
+\bigskip
+
+Maiores informações, visite \href{http://www.analisemacro.com.br/}{\textbf{www.analisemacro.com.br}.}
+
+\end{quote}
+\end{frame}
+
+\section{Como pensam os economistas}
+
+\begin{frame}{Como pensam os economistas}
+
+\begin{block}{O PIB é definido como...}
+
+A soma de bens e serviços finais produzidos em determinado período de
+tempo.
+
+\end{block}
+
+\begin{block}{Essa oferta de bens e serviços depende...}
+
+Da disponibilidade de fatores de produção (capital e trabalho) e da
+forma como esses fatores são combinados.
+
+\end{block}
+
+\begin{block}{Em particular}
+
+As instituições de um país podem incentivar combinações mais ou menos
+produtivas, isto é, pró ou contra a maior oferta de bens e serviços nais a
+cada ponto do tempo.
+
+\end{block}
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+Dito isto, podemos expressar o PIB \textbf{efetivo} da seguinte forma: \begin{equation} Y_{t} = Y_{t}^{P} + h_{t} \end{equation} Onde, $Y_{t}$ é o PIB em $t$, $Y^P_{t}$ é a \emph{tendência de longo prazo do PIB}, chamada de \textbf{produto potencial} e $h_{t}$ é um componente cíclico, chamado de \textbf{hiato do produto}. O \textbf{PIB Potencial}, $Y^P_{t}$, a tendência do PIB Efetivo ao longo do tempo, reflete condições estruturais da economia, como a \textbf{população em idade ativa}, o \textbf{estoque de capital}, \textbf{qualidade da educação}, \textbf{qualidade das instituições}, etc. O \textbf{hiato do produto}, $h_{t}$, o componente cíclico, por sua vez, reflete questões conjunturais, como incentivos de política econômica, condições climáticas, choques externos, incertezas políticas, etc.
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+Em outros termos, no curto prazo o \textbf{PIB Efetivo} pode crescer mais ou menos do que o \textbf{PIB Potencial}, aquela \textbf{tendência}. No longo prazo, entretanto, o crescimento da economia está limitado pela \textbf{disponibilidade de fatores e pela forma como esses fatores são combinados}. 
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+Isto é, supondo que a estrutura da economia possa ser representada por uma função do tipo Cobb-Douglas, com retornos constantes de escala, temos que:
+\begin{equation}Y_{t} = A_{t} K_{t}^{\alpha_{t}} L_{t}^{1-\alpha_{t}}\end{equation} Onde $K_{t}$ e $L_{t}$ são, respectivamente, a quantidade de capital e trabalho, $A_{t}$ mede a eficiência tecnológica ou a \emph{produtividade total dos fatores} e $\alpha_{t}$, por fim, mede a participação do capital na renda nacional. 
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+Nesse contexto, $Y_{t}$, a soma de bens e serviços finais produzidos em determinado período de tempo, será dado pela combinação entre uma determinada quantidade de estoque de capital com outra de trabalho, moderada pela tecnologia disponível. Em última instância, portanto, $Y_{t}$ estará limitado pela disponibilidade de fatores de produção e pela forma como esses fatores são combinados (a produtividade total dos fatores). Os economistas gostam de chamar essa limitação de \textbf{produto potencial}, ou simplesmente $Y^P_{t}$.
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+No curto prazo, a diferença entre $Y_{t}$ e $Y^P_{t}$ será assim dada pelo hiato do produto, $h_{t}$. Em termos gráficos, podemos expressar o mesmo como na figura abaixo.
+
+<<Codigo08, echo=F, results='asis',  fig.cap = '', fig.width=10, fig.height=5, fig.align='center', out.width=".7\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+library(mFilter)
+
+pib <- ts(read.csv2('usp.csv', header=T, sep=';', dec=','), 
+          start=c(1996,01), freq=4)
+
+hp <- hpfilter(pib, type='lambda', freq=1600)
+
+plot(hp$cycle, bty='l', xlab='', ylab='Número Índice', xaxt='n', lwd=2)
+
+axis(1, at=c(1996:2016))
+
+abline(h=0, col='red', lty=1, lwd=2)
+
+grid(col='gray0')
+
+mtext('Hiato do Produto (PIB efetivo - PIB potencial)', side=3, line=1, font=2)
+
+
+@
+\end{frame}
+
+
+\begin{frame}{Como pensam os economistas}
+
+O hiato do produto representa assim o que os economistas gostam de chamar de ciclo econômico ou, em outros termos, o ajuste entre o PIB efetivo e o seu potencial. A dinâmica desse ciclo é determinada em grande medida pela rigidez de preços. Fossem os preços totalmente flexíveis, o ajuste seria imediato, implicando que $h_{t}$ seria zero. Nesses termos, para entendermos o tempo desse ajuste, podemos verificar o grau de persistência de um determinado choque sobre o PIB por meio do hiato do produto.
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+Para tanto, vamos considerar que possamos modelar o hiato como um processo autoregressivo de ordem 1, como abaixo \begin{equation}h_{t} = \alpha h_{t-1} + \epsilon_{t}\end{equation} Onde $\alpha$ é um parâmetro entre 0 e 1 e $\epsilon_{t}$ é supostamente um ruído branco. Fazendo uma iteração de (3), temos que: \[ h_{t} = \alpha (\alpha h_{t-2} + \epsilon_{t-1}) + \epsilon_{t}  \] \begin{equation} h_{t} = \epsilon_{t} + \alpha \epsilon_{t-1} + \alpha^{2} \epsilon_{t-2} + \alpha^{3} \epsilon_{t-3} + ... \end{equation} 
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+Nesses termos, a dinâmica do produto será determinada pelo parâmetro $\alpha$, na medida em que ele explica o grau de persistência de um determinado choque. Em outras palavras, se os choques afetam o PIB somente em um período, não há persistência, de modo que $\alpha$ é igual a zero. O hiato do produto é assim um ruído branco, ou $h_{t} = \epsilon_{t}$.
+
+\bigskip
+
+Considerando que $Y^P_{t}$ possa ser representado por uma tendência determinística e linear, o PIB fica reescrito como \begin{equation} Y_{t} = \mu + \beta T + \epsilon_{t} \end{equation} Se esse for o caso, o processo é descrito como \textbf{tendência-estacionário}. Por outro lado, se $\alpha \neq 0$, há persistência dos choques, de modo que seus efeitos duram mais do que um período. Considere o caso extremo, em que $\alpha = 1$.
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+Nesse caso, substituindo em (4), temos que: \begin{equation} h_{t} = \sum_{k=0}^{\infty} \epsilon_{t-k} \end{equation} Ou seja, os choques são totalmente incorporados ao produto. Adicione agora $Y^P_{t}$, considerando este uma tendência determinística e linear, como em (5). Nesse caso, temos que: \begin{equation} Y_{t} = \mu + \beta T + \sum_{k=0}^{\infty} \epsilon_{t-k} \end{equation}
+
+\end{frame}
+
+\begin{frame}{Como pensam os economistas}
+
+Nesse caso, além dos choques não se dissiparem, a tendência ainda se torna estocástica. Por fim, vamos substituir $Y_{t-1} = \mu + \beta (T-1) + \epsilon_{t-1} + \epsilon_{t-2}...$ de (7), de modo que obtemos: \begin{equation} Y_{t} = \beta + Y_{t-1} + \epsilon_{t} \end{equation} Ou seja, temos um processo autoregressivo de ordem (1), com raiz unitária e \emph{drift}.
+
+\end{frame}
+
+\section{De repente, fomos parar no fundo do poço}
+
+\begin{frame}{De repente, fomos parar no fundo do poço}
+
+<<Importacao, echo=FALSE, results="hide", warning=FALSE, error=FALSE, message=FALSE>>=
+
+# OBJETIVO: Fazer uma análise do pib brasileiro e gerar uma previsão. 
+
+### Último dado
+
+ultima <- as.Date('2016-06-01')
+
+## Pacotes
+
+library(BMR)
+library(xtable)
+library(TStools)
+
+## Importação da planilha com os números índices do pib. 
+
+pib <- read.csv2('pib.csv', header=T, sep=';', dec=',',
+                 skip=4)
+
+pib <- pib[-nrow(pib),-1]
+
+pib_sa <- read.csv2('pib_sa.csv', header=T, sep=';',
+                    dec=',', skip=4)
+
+pib_sa <- pib_sa[-nrow(pib_sa),-1]
+
+### Renomear séries
+
+colnames(pib) <- c('Agro', 'Ind', 'Serv', 'PIB',
+                   'Consumo', 'Governo', 'FBCF',
+                   'Exportação', 'Importação')
+
+colnames(pib_sa) <- c('Agro', 'Ind', 'Serv', 'PIB',
+                      'Consumo', 'Governo', 'FBCF',
+                      'Exportação', 'Importação')
+
+### Transformar em série temporal
+
+pib <- ts(pib, start=c(1996,1), freq=4)
+
+pib_sa <- ts(pib_sa, start=c(1996,1), freq=4)
+
+
+@
+
+<<Contas, echo=FALSE, results="hide", warning=FALSE>>=
+
+### Variação Marginal
+
+margem <- (pib_sa/lag(pib_sa,-1)-1)*100
+
+colnames(margem) <- colnames(pib_sa)
+
+### Mesmo trimestre do ano anterior
+
+trimestral <- (pib/lag(pib,-4)-1)*100
+
+colnames(trimestral) <- colnames(pib)
+
+### Acumulado em 4 trimestres
+
+anual <- (((pib+lag(pib,-1)+lag(pib,-2)+lag(pib,-3))/4)/
+  ((lag(pib,-4)+lag(pib,-5)+lag(pib,-6)+lag(pib,-7))/4)-1)*100
+  
+colnames(anual) <- colnames(pib)
+
+
+@
+
+<<um, echo=FALSE, results='asis', fig.width=10, fig.height=5, fig.align='center', out.width=".95\\linewidth", warning=FALSE, message=FALSE>>=
+
+range <- range(anual[,2])
+
+plot(anual[,4], bty='l', xlab='', ylab='%', lwd=2, xaxt='n')
+
+polygon(x=c(2010,2010, 2017,2017),
+        y=c(range[1]-10, range[2]+10, rev(range[2]+10), rev(range[1]-10)),
+        density=NA, col="lightgray", border=NA)
+
+lines(anual[,4], lwd=2)
+lines(cmav(anual[,4], ma=12), col='red', lty=2)
+
+abline(h=0, col='darkblue')
+
+axis(1, at=c(1996:2016))
+grid(,col='darkgray')
+
+abline(v=c(2010,4))
+mtext('Crescimento da economia brasileira acumulado em 4 trimestres (%)', side=3, line=1, font=2)
+mtext('FONTE: Elaboração própria com dados do IBGE.', side=1,
+      line=3, font=1)
+legend('bottomleft', lty=c(1,2), lwd=c(2,1), col=c('black', 'red'),
+       legend=c('Crescimento do PIB', 'Média Móvel'), bty='n')
+
+@
+\end{frame}
+
+
+\begin{frame}{De repente, fomos parar no fundo do poço}
+
+\begin{block}{Em resumo}
+
+\begin{enumerate}
+
+  \item Alcançado o pleno emprego do fator trabalho em 2010, era preciso contar com Investimento e Produtividade para crescer;
+  
+  \item Esses fatores, entretanto, dependem fortemente do ambiente econômico;
+  
+  \item O ambiente econômico, por suposto, é influenciado pelos incentivos presentes nas instituições. 
+
+\end{enumerate}
+
+\end{block}
+\end{frame}
+
+\section{O drama fiscal}
+
+\begin{frame}{O drama fiscal}
+
+<<dois, echo=FALSE, results='asis', fig.width=10, fig.height=5, fig.align='center', out.width=".95\\linewidth", warning=FALSE, message=FALSE>>=
+
+library(forecast)
+library(ggplot2)
+library(ggthemes)
+library(easyGgplot2)
+library(grid)
+library(png)
+
+
+data <- ts(read.csv2('data.csv', header=T, sep=';', dec=',')[,-1],
+           start=c(1997,12), freq=12)
+
+colnames(data) <- c('Receita Primária', 'Despesa Primária', 'DLSP', 'DBGG')
+
+img <- readPNG('logo.png')
+g <- rasterGrob(img, interpolate=TRUE)
+
+autoplot(data[,c(1,2)]) +
+  geom_line(size=0.8) +
+  ylab('R$ milhões') +
+  xlab('') +
+  scale_x_discrete(limits=1998:2016) +
+  ggtitle('Receita vs. Despesa Primárias acumuladas em 12 meses') +
+  theme_economist(base_size = 11) +
+  scale_color_economist(stata=FALSE) +
+  labs(colour = "")+
+  annotate("rect", fill = "gray", alpha = 0.5, 
+           xmin = 2014.5, 
+           xmax = 2016.99,
+           ymin = -Inf, ymax = Inf)+
+  annotation_custom(g, xmin=2014.5, xmax=2016.9, 
+                    ymin=400000, ymax=800000)+
+  annotate('text', x=2003, y=1100000, 
+           label='Deflacionadas pelo IPCA - Preços de Set/2016',
+           colour='red', size=5)
+
+
+
+@
+\end{frame}
+
+\begin{frame}{O drama fiscal}
+
+<<tres, echo=FALSE, results='asis', fig.width=10, fig.height=5, fig.align='center', out.width=".95\\linewidth", warning=FALSE, message=FALSE>>=
+
+autoplot((data[,1]-data[,2])/1000) +
+  geom_line(colour='darkblue', size=0.8) +
+  ylab('R$ bilhões') +
+  xlab('') +
+  scale_x_discrete(limits=1998:2016) +
+  scale_y_discrete(limits=c(-180, -150, -100, -50, 0, 50, 100, 150))+
+  ggtitle('Resultado Primário do Governo Central') +
+  theme_economist(base_size = 11) +
+  scale_color_economist(stata=FALSE) +
+  labs(colour = "")+
+  annotate("rect", fill = "gray", alpha = 0.5, 
+           xmin = 2014.5, 
+           xmax = 2016.99,
+           ymin = -Inf, ymax = Inf)+
+  annotation_custom(g, xmin=2014.5, xmax=2016.99, 
+                    ymin=100, ymax=150)+
+  annotate('text', x=2003, y=-120, 
+           label='Deflacionado pelo IPCA - Preços de Set/2016',
+           colour='red', size=5)
+
+
+
+@
+\end{frame}
+
+\begin{frame}{O drama fiscal}
+
+<<quatro, echo=FALSE, results='asis', fig.width=10, fig.height=5, fig.align='center', out.width=".95\\linewidth", warning=FALSE, message=FALSE>>=
+
+dbgg <- window(data[,4], start=c(2006,12))
+
+autoplot(dbgg)+
+  geom_line(size=0.8) +
+  ylab('% PIB') +
+  xlab('') +
+  scale_x_discrete(limits=2007:2016) +
+  ggtitle('Dívida Bruta do Governo Geral (DBGG)') +
+  theme_economist(base_size = 11) +
+  scale_color_economist(stata=FALSE) +
+  labs(colour = "")+
+  annotate("rect", fill = "gray", alpha = 0.5, 
+           xmin = 2014.0, 
+           xmax = 2016.99,
+           ymin = -Inf, ymax = Inf)+
+  annotation_custom(g, xmin=2015.0, xmax=2016.9, 
+                    ymin=50, ymax=56)+
+  annotate('text', x=2011, y=66, 
+           label='Dívida saiu de 52,8% em 2014 para 70,1% em 2016',
+           colour='red', size=5)
+
+
+
+@
+\end{frame}
+
+\section{Calma, temos uma chance!}
+
+\begin{frame}{Calma, temos uma chance!}
+
+
+\begin{block}{Conjuntural}
+
+\begin{enumerate}
+
+  \item Convergência da inflação para a meta, com consequente possibilidade de redução dos juros básicos. 
+
+\end{enumerate}
+
+\end{block}
+
+
+\begin{block}{Estrutural}
+
+\begin{enumerate}
+
+  \item Aprovação urgente da PEC 241;
+  
+  \item \textbf{Aprovação urgente da PEC 241};
+  
+  \item Encaminhamento e aprovação da Reforma da Previdência;
+  
+  \item Encaminhamento de outras reformas microeconômicas, como a reforma tributária e a reforma trabalhista;
+  
+  \item Encaminhamento de Programa de Privatizações e Concessões;
+  
+\end{enumerate}
+
+\end{block}
+\end{frame}
+
+
+\begin{frame}{Calma, temos uma chance!}
+
+
+\begin{block}{Cenários Possíveis}
+
+\begin{enumerate}
+
+  \item Cenário Base: o mínimo é aprovado no Congresso;
+  
+  \item Cenário Otimista: PEC 241 e reforma da previdência são aprovadas, programa de concessões/privatizações deslancha, mundo ajuda;
+  
+  \item Cenário Pessimista: tudo fica como está. 
+
+\end{enumerate}
+\end{block}
+\end{frame}
+
+\section{Referências}
+
+\begin{frame}{Referências}
+
+Licha, A. L. (2015). Teoria de Política Monetária. São Paulo: Editora Alta Books.
+
+\end{frame}
+
+
+\end{document}
+
