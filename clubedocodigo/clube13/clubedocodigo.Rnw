@@ -1,0 +1,179 @@
+\documentclass[12pt, a4paper]{article}
+
+% Carregando pacotes necessários
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{float}
+
+\usepackage[autostyle]{csquotes}
+\usepackage[svgnames]{xcolor} % Enabling colors by their 'svgnames'
+\usepackage{graphicx}
+\usepackage{lscape}
+\usepackage{amsmath, amsthm, amssymb, amsfonts} % Usar matemática
+\newtheorem{mydef}{Definition}
+\usepackage{hyperref}
+\usepackage{epstopdf}
+\usepackage{dcolumn}
+\usepackage{booktabs}
+\usepackage{subfig}
+\usepackage{fancyvrb}
+\usepackage[brazilian]{babel} % Usar acentos
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[condensed,math]{iwona}
+\usepackage[nottoc]{tocbibind}
+\usepackage[round]{natbib}
+\bibliographystyle{kbib}
+\VerbatimFootnotes
+\usepackage{xcolor} % Required for specifying custom colors
+\usepackage{fix-cm} % Allows increasing the font size of specific fonts beyond LaTeX default specifications
+\usepackage{parskip}  % Inclui \bigskip para cada linha vazia
+
+
+% Criando simbolo de distribuido como...
+
+\makeatletter
+\newcommand{\distas}[1]{\mathbin{\overset{#1}{\kern\z@\sim}}}%
+\newsavebox{\mybox}\newsavebox{\mysim}
+\newcommand{\distras}[1]{%
+  \savebox{\mybox}{\hbox{\kern3pt$\scriptstyle#1$\kern3pt}}%
+  \savebox{\mysim}{\hbox{$\sim$}}%
+  \mathbin{\overset{#1}{\kern\z@\resizebox{\wd\mybox}{\ht\mysim}{$\sim$}}}%
+}
+
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\thispagestyle{empty} % Remove page numbering on this page
+
+\begin{center}
+\lhead{}
+\chead{\includegraphics[scale=1]{logo.png}}
+\rhead{}
+\end{center}
+
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+\bigskip
+
+\setlength{\oddsidemargin}{0mm} % Adjust margins to center the colored title box
+\setlength{\evensidemargin}{0mm} % Margins on even pages - only necessary if adding more content to this template
+
+\newcommand{\HRule}[1]{\hfill \rule{0.2\linewidth}{#1}} % Horizontal rule at the bottom of the page, adjust width here
+
+\definecolor{grey}{rgb}{0.9,0.9,0.9} % Color of the box surrounding the title - these values can be changed to give the box a different color	
+
+
+
+\colorbox{Navy}{
+	\parbox[t]{1.0\linewidth}{
+		\centering \fontsize{20pt}{40pt}\selectfont % The first argument for fontsize is the font size of the text and the second is the line spacing - you may need to play with these for your particular title
+		\vspace*{0.7cm} % Space between the start of the title and the top of the grey box
+		
+		\hfill \textcolor{White}{Clube do Código 13 \\
+		\hfill Um modelo SARIMA para a inflação medida pelo IPCA} \par
+		
+		\vspace*{0.7cm} % Space between the end of the title and the bottom of the grey box
+	}
+}
+
+%----------------------------------------------------------------------------------------
+
+\vfill % Space between the title box and author information
+
+
+
+%----------------------------------------------------------------------------------------
+%	AUTHOR NAME AND INFORMATION SECTION
+%----------------------------------------------------------------------------------------
+
+{\centering \large 
+\hfill Vítor Wilher \\
+\hfill Mestre em Economia \\
+\hfill \href{http://www.analisemacro.com.br}{\texttt{analisemacro.com.br}} \\
+
+
+\HRule{1pt}} % Horizontal line, thickness changed here
+
+%----------------------------------------------------------------------------------------
+
+\clearpage % Whitespace to the end of the page
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\setlength\parindent{0pt} % Noindent para o documento todo
+
+\captionsetup{belowskip=12pt,aboveskip=4pt}
+
+\setlength{\skip\footins}{1.5cm}
+
+\renewcommand{\baselinestretch}{1.5}\normalsize
+
+
+<<latex-steup, echo=FALSE>>=
+#incluir referencias
+
+Sys.setenv(TEXINPUTS=getwd(),
+           BIBINPUTS=getwd(),
+           BSTINPUTS=getwd())
+
+@
+
+
+
+<<knitroptionsebook, echo=FALSE>>=
+
+opts_chunk$set(fig.width='\\textwidth',out.width='0.9\\textwidth',
+               fig.height=4, echo=TRUE, tidy=F, eval=TRUE,
+               warning=FALSE, error=FALSE, message=F,
+               fig.align='center', fig.pos = 'H')
+
+@
+
+\newpage
+\section*{Pacotes e Scripts Externos}
+
+<<pacotes, echo=T, message=FALSE, warning=FALSE>>=
+
+source('bcb.R')
+
+library(forecast)
+library(ggplot2)
+library(ggthemes)
+library(easyGgplot2)
+library(xtable)
+library(TStools)
+library(png)
+library(grid)
+
+
+@
+
+
+
+\newpage
+<<CC13, child='cc13.Rnw'>>=
+@
+
+\newpage
+<<Apendice, child='apendice.Rnw'>>=
+@
+
+
+\newpage
+\bibliography{references}
+
+\end{document}
+

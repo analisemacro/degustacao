@@ -1,0 +1,26 @@
+<<apendice, echo=FALSE, cache=FALSE>>=
+set_parent('clubedocodigo.Rnw')
+@
+
+\appendix
+\section{Previsões geradas pelos Modelos} \label{App:AppendixA}
+
+<<Codigoap1, echo=F, results='asis',  fig.cap = 'Valores das previsões do SARIMA', fig.width=10, fig.height=5, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+
+xtable(forecast.auto, 
+             caption='Previsões geradas pelo Auto Arima', 
+             format.args=list(big.mark='.', decimal.mark=','),
+             digits=2)
+
+@
+
+<<Codigoap2, echo=F, results='asis',  fig.cap = 'Valores das previsões do SARIMA', fig.width=10, fig.height=5, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+xtable(forecast.sarima, 
+             caption='Previsões geradas pelo SARIMA', 
+             format.args=list(big.mark='.', decimal.mark=','),
+             digits=2)
+
+
+@

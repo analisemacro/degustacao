@@ -1,0 +1,192 @@
+<<CC13, echo=FALSE, cache=FALSE>>=
+set_parent('clubedocodigo.Rnw')
+@
+
+
+\section{Introdução}
+
+Na edição anterior do \textcolor{Navy}{Clube do Código}, evidenciamos que a desancoragem das expectativas de inflação tem sobrecarregado o hiato do produto. Em outras palavras, dado que a inflação passada tem ganhado maior peso para explicar a inflação presente, a desinflação atual exigirá uma abertura do hiato bem maior do que seria necessário há alguns anos.
+
+Hoje, vamos começar a entender essa desinflação. Para tal, vamos utilizar a inflação mensal medida pelo IPCA, o índice oficial do regime de metas para a inflação. Ela é obtida diretamente do Sistema de Séries Temporais do Banco Central e posto abaixo.
+
+<<Codigo01, echo=F, results='asis',  fig.cap = 'Vamos trabalhar com a inflação mensal nesse exercício.', fig.width=10, fig.height=5, fig.align='center', out.width=".65\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+### Importar IPCA do Banco Central e Meta do arquivo meta.csv
+
+ipca <- ts(getSeries(433, data.ini = '01/01/2007', 
+                     data.fim = '01/07/2016')$valor,
+           start=c(2007,01), freq=12)
+
+@
+
+<<Codigo02, echo=T, results='asis',  fig.cap = 'Vamos trabalhar com a inflação mensal nesse exercício.', fig.width=10, fig.height=5, fig.align='center', out.width=".85\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+
+autoplot(ipca) +
+  geom_line(colour="darkblue", size=1.5) + 
+  xlab('') + ylab('% a.m.') +
+  scale_x_discrete(limits=2007:2017)+
+  ggtitle('Inflação mensal medida pelo IPCA') +
+  theme_economist()
+
+@
+
+
+Uma característica que salta aos olhos quando olhamos para a inflação é a sua sazonalidade. No primeiro semestre, a inflação tende a cair, aumentando no segundo semestre. O gráfico abaixo deixa esse comportamento mais nítido.
+
+<<Codigo03, echo=F, results='hide',  fig.cap = 'Sazonalidade do IPCA', fig.width=10, fig.height=5, fig.align='center', out.width=".85\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+
+seasplot(ipca, outplot=3, trend=F,
+         plot.title = 'Sazonalidade da Inflação medida pelo IPCA')
+
+
+@
+
+\section{Exercício}
+
+Dado a nítida sazonalidade da inflação, optamos nesse primeiro exercício de previsão da série por construir um modelo univariado com sazonalidade, ou simplesmente um SARIMA.\footnote{Maiores detalhes sobre esse tipo de modelo, veja \href{https://www.otexts.org/fpp/8/9}{aqui}.} Para determinar os termos AR e MA das partes com e sem sazonalidade, vamos dar uma olhada primeiramente nas funções de autocorrelação. 
+
+Observe na figura 3 que a FAC mostra uma alternância, enquanto a PFAC mostra uma significância no primeiro termo. Isso nos levará a estimar um modelo SARIMA $(1,0,0)(0,0,1)$. Ademais, vamos utilizar também a função \texttt{auto.arima} do pacote \texttt{forecast}, de modo a escolher um modelo que minimize algum critério de informação. 
+
+Estamos supondo, ademais, que o IPCA é uma série estacionária, a despeito do resultado que vamos encontrar no modelo escolhido na função \texttt{auto.arima}.
+
+<<Codigo04, echo=T, results='hide',  fig.cap = 'Funções de Autocorrelação', fig.width=10, fig.height=5, fig.align='center', out.width=".65\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+### Funções de Autocorrelação
+a1 <- ggAcf(ipca, lag.max = 24, main='ACF')+theme_economist()
+a2 <- ggPacf(ipca, lag.max = 24, main='PACF')+theme_economist()
+ggplot2.multiplot(a1, a2, cols=1)
+
+
+@
+
+\subsection{Modelagem}
+
+Abaixo construímos os modelos com a função \texttt{Arima} e a função \texttt{auto.arima}, ambas do pacote \texttt{forecast}. 
+
+<<Codigo05, echo=T, results='hide',  fig.cap = 'Funções de Autocorrelação', fig.width=10, fig.height=5, fig.align='center', out.width=".65\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+### Modelos
+
+auto <- auto.arima(ipca, max.p=5, max.q=5, max.P=5, max.Q=5)
+
+sarima <- Arima(ipca, order=c(1,0,0), seasonal = c(0,0,1))
+
+@
+
+Abaixo, comparamos o IPCA com os modelos estimados.
+
+<<Codigo06, echo=T, results='hide',  fig.cap = 'Os modelos captam a tendência da série ao longo do tempo.', fig.width=10, fig.height=5, fig.align='center', out.width=".85\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+### IPCA vs. Modelos
+
+data <- cbind(ipca, fitted(auto), fitted(sarima))
+
+autoplot(data) +
+  ylab('% a.m.') +
+  scale_x_discrete(limits=2007:2017)+
+  ggtitle('IPCA vs. Modelos') +
+  theme_economist(base_size = 11) +
+  labs(colour = "") +
+  scale_colour_hue(labels=c('Auto Arima', 
+                            'SARIMA',
+                            'IPCA'))
+
+
+@
+
+
+\subsection{Previsão}
+
+De posse dos modelos, podemos passar para a previsão propriamente dita. A fazemos usando a função \texttt{forecast} do pacote de mesmo nome, como abaixo. 
+
+<<Codigo07, echo=T, results='hide',  fig.cap = 'Os modelos captam a tendência da série ao longo do tempo.', fig.width=10, fig.height=5, fig.align='center', out.width=".85\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+### Forecast
+
+fauto <- forecast(auto, h=18, level=c(50, 75, 95))
+fsarima <- forecast(sarima, h=18, level=c(50, 75, 95))
+
+@
+
+Um gráfico com as previsões geradas é posto abaixo. 
+
+<<Codigo08, echo=T, results='asis',  fig.cap = 'Previsões dos modelos SARIMA.', fig.width=10, fig.height=5, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+g1 <- autoplot(fauto)+
+  ggtitle('Forecast do Auto Arima')+
+  theme_economist()
+
+g2 <- autoplot(fsarima)+
+  ggtitle('Forecast do SARIMA')+
+  theme_economist()
+
+ggplot2.multiplot(g1, g2, cols=2)
+
+@
+
+As tabelas com as previsões geradas pelos modelos podem ser vistos no apêdince \ref{App:AppendixA}.
+
+<<Codigo09, echo=F, results='asis',  fig.cap = 'Valores das previsões do Auto Arima', fig.width=10, fig.height=5, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+forecast.auto <- cbind(fauto$lower[,1], fauto$mean, 
+                       fauto$upper[,1])
+
+colnames(forecast.auto) <- c('Lower', 'Mean', 'Upper')
+
+forecast.sarima <- cbind(fsarima$lower[,1], fsarima$mean,
+                         fsarima$upper[,1])
+
+colnames(forecast.sarima) <- c('Lower', 'Mean', 'Upper')
+
+@
+
+\subsection{Projeções do IPCA acumuladas em 12 meses}
+
+Por fim, apresentamos as projeções do modelo SARIMA acumuladas em 12 meses.
+
+<<Codigo11, echo=F, results='asis',  fig.cap = 'A área hachurada é a previsão do modelo.', fig.width=10, fig.height=5, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='footnotesize'>>=
+
+### Acumular em 12 meses
+
+ipca12 <- ts(c(ipca, fsarima$mean), start=c(2007,01), freq=12)
+
+fator <- 1+ipca12/100
+
+acumulado <- (fator*lag(fator,-1)*lag(fator,-2)*lag(fator,-3)*
+                lag(fator,-4)*lag(fator,-5)*lag(fator,-6)*
+                lag(fator,-7)*
+                lag(fator,-8)*lag(fator,-9)*lag(fator,-10)*
+                lag(fator,-11)
+              -1)*100
+
+ipca12 <- acumulado
+
+img <- readPNG('logo.png')
+g <- rasterGrob(img, interpolate=TRUE)
+
+autoplot(ipca12)+
+  ggtitle('Projeção da Inflação medida pelo IPCA acumulada em 12 meses com modelo SARIMA')+
+  geom_line(colour="darkblue", size=1)+
+  scale_x_discrete(limits=2007:2017)+
+  xlab('')+ylab('% a.a.')+
+  annotate("rect", fill = "gray", alpha = 0.5, 
+           xmin = 2016.5, 
+           xmax = 2017.99,
+           ymin = -Inf, ymax = Inf)+
+  theme_economist()+
+  annotation_custom(g, xmin=2016.5, xmax=2017.9, 
+                    ymin=4.1, ymax=5.9)
+
+
+@
+
+\section{Discussões Finais}
+
+Os modelos SARIMA conseguem captar, de forma razoável, a dinâmica da inflação medida pelo IPCA. Por se tratar de um modelo univariado, obviamente, excluem efeitos de outras variáveis ou de choques eventuais que podem ocorrer sobre a inflação mensal. 
+
+Nesse contexto, para tornar a previsão da inflação mais acurada é preciso incorporar à modelagem outras variáveis, como, por exemplo, o hiato do produto, as expectativas de inflação e movimentos da taxa de câmbio. Faremos isso em edições futuras do Clube. 
+
+Por aqui, esperamos que o exercício tenha contribuído para melhorar a compreensão dos nossos membros desse tipo de modelagem. Um \emph{plus} dessa edição do Clube, por fim, foi o uso dos pacotes \texttt{ggplot2}, \texttt{easyGgplot2} e \texttt{ggthemes} para a parte gráfica.\footnote{Veja mais sobre a associação do \texttt{ggplot2} com o \texttt{forecast} \href{http://robjhyndman.com/hyndsight/forecast7-ggplot2/}{aqui}.} 
+
