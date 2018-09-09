@@ -2,15 +2,7 @@
 ### Desemprego vs. Uber ###
 ###########################
 
-### Instalar pacotes (se necess·rio)
-
-if (!require("devtools")) install.packages("devtools")
-devtools::install_github("PMassicotte/gtrendsR")
-devtools::install_github("trinker/gtrend")
-
-Sys.setenv(LANG = "en", TZ = 'GMT') # Data Problems
-
-### Carregar pacotes que ser„o utilizados
+### Carregar pacotes que ser√£o utilizados
 
 library(gtrendsR)
 library(ggplot2)
@@ -47,13 +39,13 @@ gtrends = ts(apply.monthly(gtrends, FUN=mean), start=c(2013,09), freq=12)
 
 autoplot(gtrends)
 
-## Juntar as duas sÈries
+## Juntar as duas s√©ries
 data <- ts.intersect(desemprego, gtrends)
 colnames(data) <- c('desemprego', 'uber')
 
 
 
-######## Ver correlaÁ„o
+######## Ver correla√ß√£o
 cor(data)
 cor = data.frame(time=as.Date(time(data)), desemprego=data[,1],
                  uber=data[,2])
@@ -61,10 +53,10 @@ cor = data.frame(time=as.Date(time(data)), desemprego=data[,1],
 ggplot(cor, aes(x=desemprego, y=uber)) +
   geom_point(shape=1, size=4, colour='darkblue') +   
   geom_smooth(method=lm) +
-  xlab('Desemprego PNAD ContÌnua') +
+  xlab('Desemprego PNAD Cont√≠nua') +
   ylab(' Uber (Pesquisa Google Trends)')+
   labs(title='Desemprego vs. Uber',
-       subtitle='Taxa de Desemprego PNAD ContÌnua vs. Pesquisas pela palavra Uber no Google Trends',
+       subtitle='Taxa de Desemprego PNAD Cont√≠nua vs. Pesquisas pela palavra Uber no Google Trends',
        caption='Fonte: analisemacro.com.br')+
   theme_minimal()
 
@@ -79,7 +71,7 @@ var <- VAR(data, p=5, type='both')
 serial.test(var)
 plot(stability(var))
 
-### FunÁ„o Impulso-Resposta
+### Fun√ß√£o Impulso-Resposta
 irf = irf(var, impulse='desemprego', response='uber', 
           n.ahead = 12, boot=T, ortho=T, cumulative=F)
 
@@ -110,13 +102,13 @@ ggplot(data = df.irf,aes(x=lags,y=irf)) +
 
 var6 <- VAR(data, p=6, type='both')
 
-### Wald Test 01: Uber n„o granger causa Desemprego
+### Wald Test 01: Uber n√£o granger causa Desemprego
 
 wald.test(b=coef(var6$varresult[[1]]), 
           Sigma=vcov(var6$varresult[[1]]), 
           Terms=c(2,4,6,8,10))
 
-### Wald Test 02: Desemprego n„o granger causa Uber
+### Wald Test 02: Desemprego n√£o granger causa Uber
 
 wald.test(b=coef(var6$varresult[[2]]), 
           Sigma=vcov(var6$varresult[[2]]), 
