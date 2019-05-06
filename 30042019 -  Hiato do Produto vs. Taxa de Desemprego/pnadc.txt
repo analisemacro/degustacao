@@ -1,0 +1,761 @@
+%tipo de arquivo gerado
+\documentclass[11pt]{beamer}
+%\usetheme{Berlin}
+\usetheme{CambridgeUS}
+%\usetheme{Boadilla}
+%\usetheme{Singapore}
+
+%Pacotes a serem usados
+%\usepackage{beamerthemesplit}
+% \usepackage[utf8]{inputenc}  Briga com T1 fontenc
+\usepackage[T1]{fontenc}
+\usepackage[portuguese]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{dcolumn}
+
+%title page
+\makeatletter
+\setbeamertemplate{title page}
+{
+  \vbox{}
+  \vfill
+  \begin{centering}
+  {\usebeamercolor[fg]{titlegraphic}\inserttitlegraphic\par}
+    \bigskip
+    \begin{beamercolorbox}[sep=8pt,center]{title}
+      \usebeamerfont{title}\inserttitle\par%
+      \vskip0.25em%
+      \ifx\insertsubtitle\@empty%
+      \else%
+        \vskip0.25em%
+        {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par}%
+      \fi%     
+    \end{beamercolorbox}%
+    \vskip1em\par
+    \begin{beamercolorbox}[sep=8pt,center]{author}
+      \usebeamerfont{author}\insertauthor
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center]{institute}
+      \usebeamerfont{institute}\insertinstitute
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center]{date}
+      \usebeamerfont{date}\insertdate
+    \end{beamercolorbox}\vskip0.5em
+  \end{centering}
+  \vfill
+}
+\makeatother
+
+\titlegraphic{\includegraphics[width=2.5cm]{logo.png}}
+\author{Vítor Wilher \\(\textbf{www.analisemacro.com.br})} 
+\title{\textbf{PNAD Contínua Mensal - Jan/2019}}
+\subtitle{\textbf{Análise da Pesquisa}}
+
+\begin{document}
+
+<<Importar, echo=F, results='hide',  fig.width=10, fig.height=5, fig.align='center', out.width=".75\\linewidth", warning=FALSE, message=FALSE>>=
+
+### Parte atualizável do script
+
+names <- c('Jan/18', 'Jan/17', 'Variação (%)')
+
+#dates <- seq(as.Date('2013-03-01'), as.Date('2018-06-01'), 
+#             by='1 month')
+
+#dates2 <- seq(as.Date('2012-03-01'), as.Date('2018-04-01'), by='1 month')
+
+ultima <- as.Date('2019-01-01')
+
+#prev.ultima = as.Date('2019-04-01')
+
+numero <- 25 # Anda uma a cada mês
+
+#names.forecast = c('mai/18', 'jun/18',
+#                   'jul/18', 'ago/18', 'set/18', 'out/18', 
+#                   'nov/18', 'dez/18', 'jan/19', 'fev/19',
+#                   'mar/19', 'abr/19')
+
+### Pacotes a serem carregados
+
+library(BMR)
+library(dynlm)
+library(forecast)
+library(stargazer)
+library(xtable)
+library(ggplot2)
+library(easyGgplot2)
+library(ggthemes)
+library(sidrar)
+library(scales)
+library(gridExtra)
+library(reshape2)
+library(xts)
+library(plyr)
+### Pacote Seasonal
+library(seasonal)
+Sys.setenv(X13_PATH = "C:/Séries Temporais/R/Pacotes/seas/x13ashtml")
+#checkX13()
+
+
+### Coletar dados no SIDRA IBGE
+populacao = get_sidra(api='/t/6022/n1/all/v/606/p/all')$Valor
+t1 = get_sidra(api='/t/6318/n1/all/v/1641/p/all/c629/all')
+po = get_sidra(api='/t/6320/n1/all/v/4090/p/all/c11913/allxt')
+po2 = get_sidra(api='/t/6323/n1/all/v/4090/p/all/c693/allxt')
+renda = get_sidra(api='/t/6390/n1/all/v/5929,5933/p/all')
+massa = get_sidra(api='/t/6392/n1/all/v/6288,6293/p/all')
+### Obter séries individuais (pode ser mais rápido)
+pia = t1$Valor[t1$`Condição em relação à força de trabalho e condição de ocupação (Código)`==32385]
+pea = t1$Valor[t1$`Condição em relação à força de trabalho e condição de ocupação (Código)`==32386]
+ocupada = t1$Valor[t1$`Condição em relação à força de trabalho e condição de ocupação (Código)`==32387]
+desocupada = t1$Valor[t1$`Condição em relação à força de trabalho e condição de ocupação (Código)`==32446]
+pnea = t1$Valor[t1$`Condição em relação à força de trabalho e condição de ocupação (Código)`==32447]
+carteira = po$Valor[po$`Posição na ocupação e categoria do emprego no trabalho principal (Código)`=='31722']
+scarteira = po$Valor[po$`Posição na ocupação e categoria do emprego no trabalho principal (Código)`=='31723']
+domestico = po$Valor[po$`Posição na ocupação e categoria do emprego no trabalho principal (Código)`=='31724']
+publico = po$Valor[po$`Posição na ocupação e categoria do emprego no trabalho principal (Código)`=='31727']
+empregador = po$Valor[po$`Posição na ocupação e categoria do emprego no trabalho principal (Código)`=='96170']
+cpropria = po$Valor[po$`Posição na ocupação e categoria do emprego no trabalho principal (Código)`=='96171']
+tfa = po$Valor[po$`Posição na ocupação e categoria do emprego no trabalho principal (Código)`=='31731']
+agro = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33357]
+ind = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33358]
+const = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33360]
+comercio = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33361]
+transporte = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33362]
+alojamento = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33363]
+informacao = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33364]
+admpub = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==39325]
+outserv = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33367]
+servdom = po2$Valor[po2$`Grupamento de atividades no trabalho principal - PNADC (Código)`==33368]
+rendanominal = renda$Valor[renda$`Variável (Código)`==5929]
+rendareal = renda$Valor[renda$`Variável (Código)`==5933]
+massanominal = massa$Valor[massa$`Variável (Código)`==6288]
+massareal = massa$Valor[massa$`Variável (Código)`==6293]
+### Consolidar
+data = data.frame(populacao, pia, pea, ocupada, desocupada, 
+                  pnea, carteira, 
+                  scarteira, domestico, publico, empregador, 
+                  cpropria, tfa, agro, ind, const, comercio,
+                  transporte, alojamento, informacao, admpub,
+                  outserv, servdom, rendanominal, rendareal,
+                  massanominal, massareal)
+### Transformar em série temporal
+pnadcm = ts(data, start=c(2012,03), freq=12)
+colnames(pnadcm) <- c('População', 'PIA', 'PEA', 'PO', "PD",
+                      'PNEA', 'Carteira', 'Sem Carteira',
+                      'Doméstico','Público', 'Empregador', 
+                      'Conta Própria','TFA', 'Agropecuária', 
+                      'Indústria', 'Construção', 'Comércio',
+                      'Transporte', 'Alojamento', 'Informação', 
+                      'Administração Pública','Outros Serviços', 
+                      'Serviços Domésticos', 'Renda Nominal', 
+                      'Renda Real', 'Massa Nominal', 'Massa Real')
+
+### Variação internanual
+
+interanual <- (pnadcm/lag(pnadcm,-12)-1)*100
+colnames(interanual) <- colnames(pnadcm)
+
+### Dinâmica
+
+dinamica <- pnadcm - lag(pnadcm,-1)
+colnames(dinamica) <- colnames(pnadcm)
+
+@
+
+\frame{\titlepage} 
+
+\frame{\frametitle{Plano de Voo}\tableofcontents} 
+
+\section{Resumo da Pesquisa}
+
+\begin{frame}
+  \frametitle{Resumo da Pesquisa}
+
+<<table1, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width=".55\\linewidth", warning=FALSE, message=FALSE>>=
+
+##########################################################################
+############## Montar tabela com última observação #######################
+
+c1 <- tail(pnadcm, n=1)
+
+c2 <- pnadcm[nrow(pnadcm)-12,]
+
+c3 <- tail(interanual, n=1)
+
+table <- t(rbind(c1,c2,c3))
+
+colnames(table) <- names
+
+print(xtable(table, 
+             caption='Métricas Principais da PNAD Contínua',
+             digits=c(0,0,0,1)),
+      format.args=list(big.mark='.', decimal.mark=','),
+      size='tiny')
+@
+\end{frame}
+
+\begin{frame}
+  \frametitle{Resumo da Pesquisa}
+
+<<tablexs, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width=".55\\linewidth", warning=FALSE, message=FALSE>>=
+
+##########################################################################
+############## Montar tabela com última observação #######################
+
+d1 <- t(tail(pnadcm, n=1) - pnadcm[nrow(pnadcm)-6,])
+
+colnames(d1) = '2018'
+
+print(xtable(d1, caption='Acumulado ao longo de 2018',
+             digits=c(0,0)),
+      format.args=list(big.mark='.', decimal.mark=','),
+      size='tiny')
+@
+\end{frame}
+
+
+\section{Dinâmica do Mercado de Trabalho}
+
+\begin{frame}
+  \frametitle{Dinâmica do Mercado de Trabalho\footnote{Variação em relação ao mês anterior.}}
+
+<<table2, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width=".55\\linewidth", warning=FALSE, message=FALSE>>=
+
+##########################################################################
+############## Montar tabela com última observação #######################
+
+c1 <- tail(dinamica, n=1)
+
+c2 <- dinamica[nrow(dinamica)-12,]
+
+table <- t(rbind(c1,c2))
+
+colnames(table) <- names[c(1,2)]
+
+print(xtable(table, title='Variação de Métricas Selecionadas',
+             digits=c(0,0,0)),
+      format.args=list(big.mark='.', decimal.mark=','),
+      size='tiny')
+@
+\end{frame}
+
+\section{Comportamento da Taxa de Desemprego}
+
+\subsection{Comportamento da População Desocupada}
+\begin{frame}
+  \frametitle{Comportamento da População Desocupada}
+<<desocupacao, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+times = seq(as.Date('2016-01-01'), ultima, 
+            by='month')
+
+desemprego = data.frame(time=times, pd=tail(pnadcm[,5], 
+                                                    12+numero))
+
+ggplot(desemprego, aes(x=time, y=pd/1000))+
+  geom_line(size=.8, colour='darkblue')+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=9, shape=21, colour="#1a476f", fill="orange")+
+  geom_text(aes(label=round(pd/1000,3)), size=2.1, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('milhões de pessoas')+
+  labs(title='População Desocupada na PNAD Contínua',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comportamento da População Desocupada}
+<<desocupacao2, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+times = seq(as.Date('2016-01-01'), ultima, 
+            by='month')
+
+desemprego = data.frame(time=times, pd=tail(interanual[,5], 
+                                                    12+numero))
+
+ggplot(desemprego, aes(x=time, y=pd))+
+  geom_bar(stat='identity', colour='darkblue', fill='darkblue')+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=9, shape=21, colour="#1a476f", fill="orange")+
+  geom_text(aes(label=round(pd,2)), size=2.1, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('%')+
+  labs(title='Variação interanual da População Desocupada',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+
+\subsection{Comportamento da PEA}
+\begin{frame}
+  \frametitle{Comportamento da PEA}
+<<pea, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+times = seq(as.Date('2016-01-01'), ultima, 
+            by='month')
+
+desemprego = data.frame(time=times, pea=tail(pnadcm[,3], 
+                                                    12+numero))
+
+ggplot(desemprego, aes(x=time, y=pea/1000))+
+  geom_line(size=.8, colour='darkblue')+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=9, shape=21, colour="#1a476f", fill="orange")+
+  geom_text(aes(label=round(pea/1000,3)), size=2.1, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('milhões de pessoas')+
+  labs(title='População Economicamente Ativa na PNAD Contínua',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comportamento da População Desocupada}
+<<pea2, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+times = seq(as.Date('2016-01-01'), ultima, 
+            by='month')
+
+desemprego = data.frame(time=times, pea=tail(interanual[,3], 
+                                                    12+numero))
+
+ggplot(desemprego, aes(x=time, y=pea))+
+  geom_bar(stat='identity', colour='darkblue', fill='darkblue')+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=9, shape=21, colour="#1a476f", fill="orange")+
+  geom_text(aes(label=round(pea,2)), size=2.1, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('%')+
+  labs(title='Variação interanual da PEA',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+
+
+\subsection{Comportamento da Taxa de Desemprego}
+\begin{frame}
+  \frametitle{Comportamento da Taxa de Desemprego}
+
+<<desemprego, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+desemprego = pnadcm[,5]/pnadcm[,3]*100
+
+desemprego_sa = final(seas(desemprego))
+
+times = seq(as.Date('2016-01-01'), ultima, 
+            by='month')
+
+desemprego = data.frame(time=times, 
+                        desemprego=tail(desemprego_sa, 
+                                                    12+numero))
+
+ggplot(desemprego, aes(x=time, y=desemprego))+
+  geom_line(size=.8, colour='darkblue')+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=6.9, shape=21, colour="#1a476f", 
+             fill="darkblue")+
+  geom_text(aes(label=round(desemprego,1)), size=2.2, 
+            hjust=0.5, vjust=0.5, shape=15, colour="white")+
+  xlab('')+ylab('%')+
+  labs(title='Taxa de Desocupação Dessazonalizada - PNAD Contínua',
+       subtitle='População desocupada em relação à PEA',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+\begin{frame}
+  \frametitle{Comportamento da Taxa de Desemprego}
+<<desemprego2, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+
+uemployment = pnadcm[,5]/pnadcm[,3]*100
+
+intdesemprego = (uemployment/lag(uemployment,-12)-1)*100
+
+times = seq(as.Date('2016-01-01'), ultima, 
+            by='month')
+
+desemprego = data.frame(time=times, 
+                        desemprego=tail(intdesemprego, 
+                                                    12+numero))
+
+ggplot(desemprego, aes(x=time, y=desemprego))+
+  geom_bar(stat='identity', colour='darkblue', fill='darkblue')+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=9, shape=21, colour="#1a476f", fill="orange")+
+  geom_text(aes(label=round(desemprego,2)), size=2.1, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('%')+
+  labs(title='Variação interanual da Taxa de Desemprego',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+
+
+\section{Abertura da População Ocupada}
+
+\subsection{Comportamento da População Ocupada}
+\begin{frame}
+  \frametitle{Comportamento da População Ocupada}
+
+<<po0, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+
+
+df4 = data.frame(time=times,
+                 po=tail(pnadcm[,4],12+numero),
+                 carteira=tail(pnadcm[,7],12+numero),
+                 scarteira=tail(pnadcm[,8],12+numero), 
+                 empregador=tail(pnadcm[,11],12+numero),
+                 cpropria=tail(pnadcm[,12],12+numero))
+
+
+ggplot(df4, aes(x=time, y=po/1000))+
+  geom_line()+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=10, shape=21, colour="#1a476f", fill="white")+
+  geom_text(aes(label=round(po/1000,2)), size=2.5, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('milhões de pessoas')+
+  labs(title='Comportamento da População Ocupada',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+\subsection{Empregado com carteira assinada}
+\begin{frame}
+  \frametitle{Empregado com carteira assinada}
+
+<<po, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+
+ggplot(df4, aes(x=time, y=carteira/1000))+
+  geom_line()+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=7, shape=21, colour="#1a476f", fill="white")+
+  geom_text(aes(label=round(carteira/1000,2)), size=2, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('milhões de pessoas')+
+  labs(title='Empregado com carteira assinada',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+
+\subsection{Empregado sem carteira assinada}
+\begin{frame}
+  \frametitle{Empregado sem carteira assinada}
+
+<<po2, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+
+ggplot(df4, aes(x=time, y=scarteira/1000))+
+  geom_line()+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=10, shape=21, colour="#1a476f", fill="white")+
+  geom_text(aes(label=round(scarteira/1000,2)), size=2.5, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('milhões de pessoas')+
+  labs(title='Empregado sem carteira assinada',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+\subsection{Empregador}
+\begin{frame}
+  \frametitle{Empregador}
+
+<<po3, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+
+ggplot(df4, aes(x=time, y=empregador/1000))+
+  geom_line()+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=10, shape=21, colour="#1a476f", fill="white")+
+  geom_text(aes(label=round(empregador/1000,2)), size=2.5, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('milhões de pessoas')+
+  labs(title='Empregador',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+\subsection{Conta Própria}
+\begin{frame}
+  \frametitle{Conta Própria}
+
+<<po4, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+
+ggplot(df4, aes(x=time, y=cpropria/1000))+
+  geom_line()+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=10, shape=21, colour="#1a476f", fill="white")+
+  geom_text(aes(label=round(cpropria/1000,2)), size=2.5, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('milhões de pessoas')+
+  labs(title='Conta Própria',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+\section{PEA vs. PO}
+
+\begin{frame}
+  \frametitle{PEA vs. PO}
+
+<<peapo1, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+df1 = data.frame(time=tail(times,numero), 
+                 dpea=tail(dinamica[,3],numero),
+                 dpo=tail(dinamica[,4],numero),
+                 dpd=tail(dinamica[,5],numero))
+
+g1 = ggplot(df1, aes(x=time, y=dpea))+
+  geom_bar(stat='identity', colour='orange', fill='orange')+
+  scale_x_date(breaks = date_breaks("1 month"),
+               labels = date_format("%m/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  xlab('')+ylab('Variação')+
+  geom_point(size=7, shape=21, colour='orange', fill="orange")+
+  geom_text(aes(label=round(dpea,0)), vjust=0.5,
+            colour='black', size=3)+
+  labs(title='Variação da PEA')
+
+g2 = ggplot(df1, aes(x=time, y=dpo))+
+  geom_bar(stat='identity', colour='darkblue', fill='darkblue')+
+  scale_x_date(breaks = date_breaks("1 month"),
+               labels = date_format("%m/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  xlab('')+ylab('Variação')+
+  geom_point(size=7, shape=21, colour='darkblue', fill="darkblue")+
+  geom_text(aes(label=round(dpo,0)), vjust=0.5,
+            colour='white', size=3)+
+  labs(title='Variação da PO')
+
+
+grid.arrange(g1, g2,
+             top = "PEA vs. PO",
+             layout_matrix = matrix(c(1,1,2,2), 
+                                    ncol=2, byrow=TRUE))
+
+
+@
+\end{frame}
+
+\begin{frame}
+  \frametitle{PEA vs. PO}
+
+<<peapo2, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+
+df1 = df1[,-c(1,4)]
+colnames(df1) = c('Variação da PEA', 'Variação da PO')
+df1 <- xts(df1, order.by = tail(times,numero))
+df1 <- data.frame(time = index(df1), melt(as.data.frame(df1)))
+
+ggplot(df1, aes(x=time, y=value, fill=variable))+
+  geom_bar(stat='identity')+
+  scale_fill_manual(values=c("#5F9EA0", "#E1B378"))+
+  xlab('')+ylab('Mil pessoas')+
+  labs(title='PEA vs. PO (Dinâmica)',
+       subtitle='Mês t menos mês t-1',
+       caption='Fonte: analisemacro.com.br com dados do IBGE.')+
+  theme(legend.position = 'top',
+        legend.title=element_blank())+
+  scale_y_discrete(limits=c(-500,-250,0,250,500,750))+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))
+  
+
+@
+\end{frame}
+
+\begin{frame}
+  \frametitle{PEA vs. PO}
+<<peapo3, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+df2 = data.frame(time=as.Date(time(interanual)),
+                 pea=interanual[,3],
+                 po=interanual[,4])
+
+ggplot(df2, aes(x=time))+
+  geom_line(aes(y=pea, colour='PEA'), size=.8)+
+  geom_line(aes(y=po, colour='PO'), size=.8)+
+  scale_colour_manual('', values=c('PEA'="#5F9EA0",
+                                   'PO'="#E1B378"))+
+  labs(title='PEA vs. PO (Variação interanual)',
+       caption='Fonte: analisemacro.com.br com dados do IBGE.')+
+  theme(legend.position = 'top')+
+  scale_x_date(breaks = date_breaks("2 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=90, hjust=1))+
+  xlab('')+ylab('%')
+  
+@
+\end{frame}
+
+\begin{frame}
+  \frametitle{PEA vs. PO}
+
+<<peapo4, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+a = interanual[,3]-lag(interanual[,3],-12)
+b = interanual[,4]-lag(interanual[,4],-12)
+
+df3 = data.frame(time=as.Date(time(a)), pea=a, po=b)
+
+g1 = ggplot(df3, aes(x=time, y=pea))+
+  geom_bar(stat='identity', colour='orange', fill='orange')+
+  scale_x_date(breaks = date_breaks("3 month"),
+               labels = date_format("%m/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  xlab('')+ylab('p.p')+
+  labs(title='PEA')
+
+g2 = ggplot(df3, aes(x=time, y=po))+
+  geom_bar(stat='identity', colour='darkblue', fill='darkblue')+
+  scale_x_date(breaks = date_breaks("3 month"),
+               labels = date_format("%m/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  xlab('')+ylab('p.p.')+
+  labs(title='PO')
+
+
+grid.arrange(g1, g2,
+             top = "PEA vs. PO: variação interanual no mês t menos variação interanual no mês t-12",
+             layout_matrix = matrix(c(1,1,2,2), 
+                                    ncol=2, byrow=TRUE))
+
+
+@
+\end{frame}
+
+
+\section{Renda}
+
+\begin{frame}
+  \frametitle{Renda}
+
+<<renda, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+renda = data.frame(time=times, 
+                   renda=tail(pnadcm[,25],12+numero),
+                   massa=tail(pnadcm[,27],12+numero))
+
+ggplot(renda, aes(x=time, y=renda))+
+  geom_line(size=.8, colour='darkblue')+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=9, shape=21, colour="#1a476f", fill="purple")+
+  geom_text(aes(label=round(renda,1)), size=3, 
+            hjust=0.5, vjust=0.5, shape=21, colour="white")+
+  xlab('')+ylab('R$')+
+  labs(title='Comportamento do Rendimento médio real',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+\begin{frame}
+  \frametitle{Renda}
+
+<<renda2, echo=F, results='asis',  fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE>>=
+
+renda = data.frame(time=times, 
+                   renda=tail(pnadcm[,25],12+numero),
+                   massa=tail(pnadcm[,27],12+numero))
+
+ggplot(renda, aes(x=time, y=massa/1000))+
+  geom_line(size=.8, colour='darkblue')+
+  scale_x_date(breaks = date_breaks("1 months"),
+               labels = date_format("%b/%Y"))+
+  theme(axis.text.x=element_text(angle=45, hjust=1))+
+  geom_point(size=9, shape=21, colour="#1a476f", fill="yellow2")+
+  geom_text(aes(label=round(massa/1000,1)), size=2.5, 
+            hjust=0.5, vjust=0.5, shape=21, colour="black")+
+  xlab('')+ylab('R$ bilhões')+
+  labs(title='Comportamento da Massa de Rendimento Real',
+       caption='Fonte: analisemacro.com.br com dados do SIDRA/IBGE.')
+
+
+@
+\end{frame}
+
+
+\section{Conheça o Clube do Código}
+
+\begin{frame}
+    \frametitle{Conheça o Clube do Código}
+\centering
+
+\textbf{\large{Tenha acesso ao código desse e de vários outros documentos! Suas apresentações nunca mais serão as mesmas...}}
+
+\bigskip
+
+\large{Liberte-se: venha para o mundo do \(\mathbf{R}\)!}
+
+\bigskip
+
+\centering
+\href{http://www.analisemacro.com.br/clube-do-codigo}{\underline{www.analisemacro.com.br/clube-do-codigo}}
+\end{frame}
+
+
+
+
+\end{document}
