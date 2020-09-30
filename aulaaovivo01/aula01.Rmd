@@ -1,0 +1,352 @@
+---
+title: "**Dados Econômicos no R**"
+subtitle: "Aula ao Vivo 01 - 29 de setembro de 2020"
+author: "Vítor Wilher"
+output: 
+  beamer_presentation:
+    #theme: "Boadilla"
+    slide_level: 2
+    fig_width: 8
+    fig_height: 4
+    fig_caption: true
+    citation_package: 'natbib'
+    includes:
+      in_header: beamer.txt
+      before_body: toc.txt
+bibliography: 'references.bib'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+```
+
+
+# Sobre o professor
+## Sobre o professor
+
+**Vítor Wilher** é Bacharel e Mestre em Economia, pela Universidade Federal Fluminense e Especialista em Data Science. Sua dissertação de mestrado foi na área de política monetária, titulada *“Clareza da Comunicação do Banco Central e Expectativas de Inflação: evidências para o Brasil”*, defendida perante banca composta pelos professores Gustavo H. B. Franco (PUC-RJ), Gabriel Montes Caldas (UFF), Carlos Enrique Guanziroli (UFF) e Luciano Vereda Oliveira (UFF). Já trabalhou em grandes empresas, nas áreas de telecomunicações, energia elétrica, consultoria financeira e consultoria macroeconômica. Atualmente, é Sócio-fundador da **Análise Macro** e Palestrante.
+
+\bigskip
+
+Mais sobre o professor, visite: [https://vitorwilher.github.io/](https://vitorwilher.github.io/)
+
+# Sobre a Análise Macro
+## Sobre a Análise Macro
+
+A Análise Macro é um sonho acalentado durante muito tempo e de pé desde setembro de 2015. 
+
+\bigskip
+
+Acreditamos que a teoria não pode estar dissociada da prática.
+
+\bigskip
+
+Queremos fazer parte de uma revolução: mostrar para as pessoas que a verdade está nos dados. 
+
+\bigskip
+
+E para ter acesso a ela é preciso ter domínio sobre as etapas de coleta, tratamento, análise e apresentação de dados. 
+
+## Sobre a Análise Macro
+
+Nossa missão é, portanto, lhe ajudar nesse processo. Para isso, oferecemos:
+
+- cursos pré-formatados que são ofertados de maneira on-line;
+- cursos na modalidade in company;
+- consultoria customizada de análise de dados;
+- o Clube do Código, local onde são divulgados todos os códigos de nossos exercícios de análise de dados.
+
+Visite nosso site e saiba mais: [http://analisemacro.com.br](http://analisemacro.com.br)
+
+# O ambiente de trabalho clássico de um economista
+## O ambiente de trabalho clássico de um economista
+
+![Vários programas para lidar com dados](figura01.jpg)
+
+# Por que usar o R?
+## Por que usar o R?
+
+\begin{itemize}
+
+  \item A existência de uma IDE bastante poderosa chamada \(\mathbf{RStudio}\) que permite integrar as etapas de coleta, tratamento, análise e apresentação de dados;
+  
+  \item A existência de uma comunidade grande e bastante entusiasmada, que compartilha conhecimento todo o tempo. Se você sabe \(\mathbf{R}\), a fronteira do conhecimento está disponível para você;
+  
+  \item o \(\mathbf{R}\) é gratuito, \emph{open source}, de modo que você não precisa comprar licenças de software para instalá-lo;
+  
+  \item Tem inúmeras bibliotecas (pacotes) em estatística, econometria, \emph{machine learning}, visualização, importação e tratamento de dados;
+  
+  \item Ferramentas poderosas para comunicação dos resultados da sua pesquisa, seja em forma de um website ou em pdf.
+
+\end{itemize}
+
+## 
+
+\begin{center}
+\LARGE{\textcolor{red}{Mas chega de preâmbulo, vamos à prática?}}
+\end{center}
+
+# Exemplo 01: coletar dados de inflação do SIDRA/IBGE
+## Exemplo 01: coletar dados de inflação do SIDRA/IBGE
+
+Suponha que você esteja interessado em verificar o comportamento da inflação ao longo do tempo? 
+
+\bigskip
+
+Qual estratégia você usaria para isso?
+
+\bigskip
+
+Talvez, ir ao site do SIDRA/IBGE, baixar um arquivo .csv ou .xls, abrir a planilha, produzir um gráfico...
+
+## Exemplo 01: coletar dados de inflação do SIDRA/IBGE
+
+No \(\mathbf{R}\), podemos usar um `pacote` para isso. Nesse caso específico, podemos usar o pacote `sidrar`, como abaixo:
+
+```{r, echo=T, eval=T, results='markup', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+library(sidrar)
+library(tidyverse)
+ipca = 
+  '/t/1737/n1/all/v/2266/p/all/d/v2266%2013' %>%
+  get_sidra(api=.) %>%
+  mutate(date = parse_date(`Mês (Código)`, format="%Y%m")) %>%
+  rename(indice = Valor) %>%
+  mutate(inflacao_mensal = (indice/lag(indice,1)-1)*100,
+         inflacao_anual = (indice/lag(indice,12)-1)*100) %>%
+  select(date, indice, inflacao_mensal, inflacao_anual) %>%
+  as_tibble()
+
+tail(ipca)
+```
+
+## Exemplo 01: coletar dados de inflação do SIDRA/IBGE
+
+Com os dados devidamente importados, nós podemos gerar gráficos...
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+filter(ipca, date > '2016-01-01') %>%
+  ggplot(aes(x=date, y=inflacao_mensal))+
+  geom_line()
+
+```
+
+## Exemplo 01: coletar dados de inflação do SIDRA/IBGE
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+filter(ipca, date > '2014-01-01') %>%
+  ggplot(aes(x=date, y=inflacao_anual))+
+  geom_line()
+
+
+```
+
+## Exemplo 01: coletar dados de inflação do SIDRA/IBGE
+
+Podemos também pegar *subgrupos* do IPCA, também diretamente para o \(\mathbf{R}\). Por exemplo, podemos estar interessados no comportamento da inflação de alimentos:
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+library(tstools)
+
+alim_dom_01 = 
+  get_sidra(api='/t/1419/n1/all/v/63/p/all/c315/7171/d/v63%202')
+
+alim_dom_02 = 
+  get_sidra(api='/t/7060/n1/all/v/63/p/all/c315/7171/d/v63%202') 
+
+alim_dom = full_join(alim_dom_01, alim_dom_02) %>%
+  mutate(date = parse_date(`Mês (Código)`, format="%Y%m")) %>%
+  mutate(inflacao_12m = acum_p(Valor,12)) %>%
+  select(date, Valor, inflacao_12m)
+
+
+```
+
+## Exemplo 01: coletar dados de inflação do SIDRA/IBGE
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+ggplot(alim_dom, aes(x=date, y=inflacao_12m))+
+  geom_line(size=.8)
+
+```
+
+# Exemplo 02: tratamento de dados da Produção Industrial
+## Exemplo 02: tratamento de dados da Produção Industrial
+
+Os números-índices nos informam, em geral, a evolução de uma cesta de produtos ou serviços ao longo do tempo. O IPCA que pegamos anteriormente é um exemplo de número-índice. A partir dele, nós calculamos a *inflação*, a taxa de crescimento do nível geral de preços entre dois períodos distintos.
+
+\bigskip
+
+De forma geral, a partir desses índices, podemos criar *métricas de crescimento*, de modo a avaliar melhor o comportamento dele ao longo do tempo.
+
+## Exemplo 02: tratamento de dados da Produção Industrial
+
+Por exemplo, a variação na margem é aquela que é obtida pela razão entre o período $t$ contra o período imediatamente anterior. 
+
+$$Var_{margem} = \left [\left (\frac{I_t}{I_{t-1}} \right ) -1\right ] \times 100$$
+
+```{r, echo=T, eval=T, results='markup', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width=".6\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+pim_sa = 
+  '/t/3653/n1/all/v/3134/p/all/c544/129314/d/v3134%201' %>%
+  get_sidra(api=.) %>%
+  mutate(date = parse_date(`Mês (Código)`, format='%Y%m')) %>%
+  select(date, Valor) %>%
+  mutate(var_margem = (Valor/lag(Valor,1)-1)*100) %>%
+  as_tibble()
+
+tail(pim_sa)
+```
+
+## Exemplo 02: tratamento de dados da Produção Industrial
+
+A variação interanual é aquela que obtida pela razão entre o período $t$ e o mesmo período no ano anterior. 
+
+$$Var_{interanual}^{Mensal} = \left [\left (\frac{I_t}{I_{t-12}} \right ) -1\right ] \times 100$$
+
+A variação interanual também pode ser feita em relação ao mesmo trimestre do ano anterior. 
+
+## Exemplo 02: tratamento de dados da Produção Industrial
+
+```{r, echo=T, eval=T, results='markup', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width=".6\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+pim = get_sidra(api='/t/3653/n1/all/v/3135/p/all/c544/129314/d/v3135%201')
+pim = 
+  pim %>%
+  mutate(date = parse_date(`Mês (Código)`, format='%Y%m')) %>%
+  select(date, Valor) %>%
+  mutate(var_interanual = (Valor/lag(Valor,12)-1)*100)
+
+tail(pim)
+```
+
+## Exemplo 02: tratamento de dados da Produção Industrial
+### Variação acumulada em determinado período
+
+O cálculo da variação acumulada em determinado período é feita em três passos:
+
+- Calcula-se a variação percentual em relação ao período imediatamente anterior;
+
+- Transforme esses valores em um fator, i.e., some 1 ao valor percentual em notação decimal;
+
+- Multiplica-se todos os fatores que se deseja acumular.
+
+## Exemplo 02: tratamento de dados da Produção Industrial
+### Variação acumulada em determinado período
+
+No R, vamos utilizar a função `acum_i()` do pacote `tstools`, disponível no github.^[[https://github.com/leripio/tstools](https://github.com/leripio/tstools)]
+
+```{r, echo=T, eval=T, results='markup', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width=".6\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+library(tstools)
+pim = 
+  pim %>%
+  mutate(var_anual = acum_i(Valor,12))
+tail(pim)
+```
+
+## Exemplo 02: tratamento de dados da Produção Industrial
+
+```{r, echo=T, eval=T, results='markup', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width=".6\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+data_pim = inner_join(pim_sa, pim, by='date') %>%
+  rename(pim_sa = Valor.x,
+         pim = Valor.y)
+
+tail(data_pim)
+```
+
+## Exemplo 02: tratamento de dados da Produção Industrial
+
+```{r, echo=T, eval=T, results='asis', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+data_pim %>%
+  gather(variavel, valor, -date) %>%
+  filter(date > '2014-01-01') %>%
+  ggplot(aes(x=date, y=valor, colour=variavel))+
+  geom_line(size=.8)+
+  facet_wrap(~variavel, scales='free')+
+  theme(legend.position = 'none')
+
+```
+
+# Exemplo 03: dessazonalizar uma série econômica com o R
+## Exemplo 03: dessazonalizar uma série econômica com o R
+
+Um problema muito comum em séries econômicas é a existência de **sazonalidade**. Isto é, em um ano calendário, uma série pode apresentar um comportamento que se repete. Para ilustrar, vamos pegar os dados do CAGED antigo a partir do `IPEADATA`:
+
+```{r, echo=T, eval=T, results='markup', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width=".6\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+library(ecoseries)
+## Baixar dados do CAGED
+saldo_caged = series_ipeadata("272844966", periodicity = 'M')$serie_272844966
+
+
+```
+
+## Exemplo 03: dessazonalizar uma série econômica com o R
+
+```{r, echo=T, eval=T, results='asis', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+ggplot(saldo_caged, aes(x=data, y=valor))+
+  geom_line()
+
+```
+
+## Exemplo 03: dessazonalizar uma série econômica com o R
+
+```{r, echo=T, eval=T, results='asis', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+library(seasonal)
+saldo_caged =
+  saldo_caged %>%
+  mutate(valor_sa = final(seas(ts(valor, start=c(1999,05), 
+                                  freq=12))))
+ggplot(saldo_caged, aes(x=data, y=valor_sa/1000))+
+  geom_line()+
+  geom_hline(yintercept=0, colour='red', linetype='dashed')
+
+
+```
+
+## Exemplo 04: criando uma média móvel sobre os dados
+
+Podemos continuar suavizando os dados, construindo uma média móvel de 12 meses, como no exemplo abaixo.
+
+```{r, echo=T, eval=T, results='asis', fig.cap='', fig.width=8, fig.height=4, fig.align='center', out.width=".8\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+library(zoo)
+saldo_caged = 
+  saldo_caged %>%
+  mutate(ma_12 = rollapply(valor_sa, 12, mean, align='right',
+                                   fill=NA))
+
+ggplot(saldo_caged, aes(x=data, y=ma_12/1000))+
+  geom_line()
+```
+
+## 
+
+\begin{center}
+\LARGE{\textcolor{red}{Vamos agora terminar nossa aula, integrando em um único documento a coleta, o tratamento e a apresentação de dados?}}
+\end{center}
+
+# Exemplo 05: gerando um documento RMarkdown
+## Exemplo 05: gerando um documento RMarkdown
+
+No meu caso aqui, estou gerando uma apresentação para vocês...
+
+\bigskip
+
+Para isso, vamos dar uma olhada no arquivo .Rmd
+
