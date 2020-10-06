@@ -1,0 +1,317 @@
+---
+title: "**Análise da PNAD Contínua com o R**"
+subtitle: "Aula ao Vivo 02 - 06 de Outubro de 2020"
+author: "Vítor Wilher"
+output: 
+  beamer_presentation:
+    #theme: "Boadilla"
+    slide_level: 2
+    fig_width: 8
+    fig_height: 4
+    fig_caption: true
+    citation_package: 'natbib'
+    includes:
+      in_header: beamer.txt
+      before_body: toc.txt
+bibliography: 'references.bib'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+```
+
+# Introdução 
+## Introdução 
+
+Nos dizeres do IBGE, a **PNAD Contínua** *Visa acompanhar as flutuações trimestrais e a evolução, no curto, médio e longo prazos, da força de trabalho, e outras informações necessárias para o estudo do desenvolvimento socioeconômico do País. Para atender a tais objetivos, a pesquisa foi planejada para produzir indicadores trimestrais sobre a força de trabalho e indicadores anuais sobre temas suplementares permanentes (como trabalho e outras formas de trabalho, cuidados de pessoas e afazeres domésticos, tecnologia da informação e da comunicação etc.), investigados em um trimestre específico ou aplicados em uma parte da amostra a cada trimestre e acumulados para gerar resultados anuais, sendo produzidos, também, com periodicidade variável, indicadores sobre outros temas suplementares. Tem como unidade de investigação o domicílio*.^[Ver em [site do IBGE](https://www.ibge.gov.br/estatisticas/sociais/trabalho/9173-pesquisa-nacional-por-amostra-de-domicilios-continua-trimestral.html?=&t=o-que-e).]
+
+## Introdução 
+
+*A PNAD Contínua foi implantada, experimentalmente, em outubro de 2011 e, a partir de janeiro de 2012, em caráter definitivo, em todo o Território Nacional. Sua amostra foi planejada de modo a produzir resultados para Brasil, Grandes Regiões, Unidades da Federação, Regiões Metropolitanas que contêm Municípios das Capitais, Região Integrada de Desenvolvimento - RIDE Grande Teresina, e Municípios das Capitais. Desde sua implantação, a pesquisa, gradualmente, vem ampliando os indicadores investigados e divulgados.*
+
+## Introdução
+
+Periodicidade de divulgação das informações:
+
+\bigskip
+
+- Mensal: Conjunto restrito de indicadores relacionados à força de trabalho e somente para o nível geográfico de Brasil;
+- Trimestral: Conjunto de indicadores relacionados à força de trabalho para todos os níveis de divulgação da pesquisa;
+- Anual: Demais temas permanentes da pesquisa e indicadores complementares à força de trabalho; e
+- Variável: Outros temas ou tópicos dos temas permanentes a serem pesquisados com maior periodicidade ou ocasionalmente.
+
+## Introdução
+
+Os indicadores mensais utilizam as informações dos últimos três meses consecutivos da pesquisa, existindo, entre um trimestre móvel e o seguinte, repetição das informações de dois meses. 
+
+\bigskip
+
+Assim, **os indicadores da PNAD Contínua produzidos mensalmente não refletem a situação de cada mês, mas, sim, a situação do trimestre móvel que finaliza a cada mês**.
+
+# Dados agregados da PNAD
+## Dados agregados da PNAD
+
+Os dados da PNAD podem ser acessadas através do site do [SIDRA/IBGE](https://sidra.ibge.gov.br/home/pnadcm/brasil). Aqui, vamos utilizar novamente o pacote `sidrar`. 
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+## Pacotes utilizados nessa apresentação
+library(tidyverse)
+library(lubridate)
+library(sidrar)
+library(zoo)
+library(scales)
+library(timetk)
+library(knitr)
+```
+
+## Dados agregados da PNAD
+
+Para começar, nós pegamos os dados da **população total**:
+
+```{r, echo=T, eval=T, results='markup', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+populacao = get_sidra(api='/t/6022/n1/all/v/606/p/all') %>%
+  mutate(date = parse_date(`Trimestre Móvel (Código)`, 
+                           format='%Y%m')) %>%
+  select(date, Valor) %>%
+  as_tibble()
+tail(populacao)
+```
+
+## Dados agregados da PNAD
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+ggplot(populacao, aes(x=date, y=Valor))+
+  geom_line()
+
+```
+
+## Dados agregados da PNAD
+
+Na sequência, vamos pegar os dados referentes à condição em relação à força de trabalho e condição de ocupação, disponíveis na tabela 6318. 
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+names = c("date", 'pnea', 'pea', 'desocupada', 'ocupada', 'pia')
+condicao = get_sidra(api='/t/6318/n1/all/v/1641/p/all/c629/all') %>%
+  mutate(date = parse_date(`Trimestre Móvel (Código)`, 
+                           format='%Y%m')) %>%
+  select(date, "Condição em relação à força de trabalho e condição de ocupação", Valor) %>%
+  spread("Condição em relação à força de trabalho e condição de ocupação", Valor) %>%
+  `colnames<-`(names) %>%
+  as_tibble()
+
+```
+
+## Dados agregados da PNAD
+
+```{r, echo=T, eval=T, results='markup', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+tail(condicao)
+
+```
+
+## Dados agregados da PNAD
+
+Vamos agora organizar os dados:
+
+```{r, echo=T, eval=T, results='markup', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+agregado_pnad = inner_join(populacao, condicao, by='date') %>%
+  rename(populacao = Valor) %>%
+  mutate(inativos = populacao - pia,
+         desemprego = desocupada/pea*100,
+         participacao = pea/pia*100) %>%
+  select(date, populacao, inativos, pia, pea, pnea, ocupada, desocupada,
+         desemprego, participacao)
+
+```
+
+## Dados agregados da PNAD
+
+```{r, echo=T, eval=T, results='markup', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+agregado_pnad %>%
+  select(-desemprego, -participacao) %>%
+  tail() %>%
+  kable()
+
+```
+
+```{r, echo=T, eval=T, results='markup', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+agregado_pnad %>%
+  select(date, desemprego, participacao) %>%
+  tail() %>%
+  kable()
+
+```
+
+## Dados agregados da PNAD
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+agregado_pnad_long =
+  agregado_pnad %>%
+  gather(variavel, valor, -date)
+
+filter(agregado_pnad_long, 
+       variavel %in% c('desemprego', 'participacao')) %>%
+  ggplot(aes(x=date, y=valor, colour=variavel))+
+  geom_line(size=.8)+
+  facet_wrap(~variavel, scales='free')+
+  theme(legend.position = 'none')
+```
+
+
+# Dados da PNAD: categoria do emprego
+## Dados da PNAD: categoria do emprego
+
+Agora, podemos pegar os dados referentes a **posição na ocupação e categoria do emprego no trabalho principal**, disponíveis na tabela 6320:
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+ocupacao_categoria =
+  get_sidra(api='/t/6320/n1/all/v/4090/p/all/c11913/allxt') %>%
+  mutate(date = parse_date(`Trimestre Móvel (Código)`, 
+                           format='%Y%m')) %>%
+  select(date, "Posição na ocupação e categoria do emprego no trabalho principal", Valor) %>%
+  spread("Posição na ocupação e categoria do emprego no trabalho principal", Valor) %>%
+  rename('Empregado sem Carteira' = 'Empregado no setor privado, exclusive trabalhador doméstico - com carteira de trabalho assinada',
+         "Empregado com Carteira" = 'Empregado no setor privado, exclusive trabalhador doméstico - sem carteira de trabalho assinada') %>%
+  as_tibble()
+
+```
+
+## Dados da PNAD: categoria do emprego
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width=".9\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+ocupacao_categoria_long =
+  ocupacao_categoria %>%
+  gather(variavel, valor, -date)
+
+filter(ocupacao_categoria_long,
+       variavel %in% c('Conta própria', 'Empregado sem Carteira', 
+                       "Empregado com Carteira",
+                       "Empregador")) %>%
+  ggplot(aes(x=date, y=valor, colour=variavel))+
+  geom_line(size=.8)+
+  facet_wrap(~variavel, scales='free')+
+  theme(legend.position = 'none', 
+        strip.text = element_text(size=7, face='bold'))
+```
+
+# Dados da PNAD: Grupamento de atividades
+## Dados da PNAD: Grupamento de atividades
+
+Agora, podemos pegar os dados referentes a **Grupamento de atividades no trabalho principal **, disponíveis na tabela 6323:
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+ocupacao_atividades =
+  get_sidra(api='/t/6323/n1/all/v/4090/p/all/c693/allxt') %>%
+  mutate(date = parse_date(`Trimestre Móvel (Código)`, 
+                           format='%Y%m')) %>%
+  select(date, "Grupamento de atividades no trabalho principal - PNADC",
+         Valor) %>%
+  spread("Grupamento de atividades no trabalho principal - PNADC", 
+         Valor) %>%
+  as_tibble()
+
+```
+
+## Dados da PNAD: Grupamento de atividades
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width=".9\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+ocupacao_atividades_long =
+  ocupacao_atividades %>%
+  gather(variavel, valor, -date)
+
+filter(ocupacao_atividades_long,
+       variavel %in% c('Agricultura, pecuária, produção florestal, pesca e aquicultura', 'Comércio, reparação de veículos automotores e motocicletas', "Construção", "Indústria geral")) %>%
+  ggplot(aes(x=date, y=valor, colour=variavel))+
+  geom_line(size=.8)+
+  facet_wrap(~variavel, scales='free')+
+  theme(legend.position = 'none', 
+        strip.text = element_text(size=7, face='bold'))
+```
+
+# Dados da PNAD: Rendimento
+## Dados da PNAD: Rendimento
+
+Agora, podemos pegar os dados referentes a **Rendimento médio, real e nominal, de todos os trabalhos, habitualmente recebido por mês**, disponíveis na tabela 6390:
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+pnad_rendimento =
+  get_sidra(api='/t/6390/n1/all/v/5929,5933/p/all') %>%
+  mutate(date = parse_date(`Trimestre Móvel (Código)`, 
+                           format='%Y%m')) %>%
+  select(date, "Variável", Valor) %>%
+  spread("Variável", Valor) %>%
+  rename('Rendimento nominal' = "Rendimento médio nominal de todos os trabalhos, habitualmente recebido por mês, pelas pessoas de 14 anos ou mais de idade, ocupadas na semana de referência, com rendimento de trabalho",
+         "Rendimento real" = 'Rendimento médio real de todos os trabalhos, habitualmente recebido por mês, pelas pessoas de 14 anos ou mais de idade, ocupadas na semana de referência, com rendimento de trabalho') %>%
+  as_tibble()
+
+```
+
+## Dados da PNAD: Rendimento
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+pnad_rendimento_long = 
+  pnad_rendimento %>%
+  gather(variavel, valor, -date)
+
+ggplot(pnad_rendimento_long, 
+       aes(x=date, y=valor, colour=variavel))+
+  geom_line(size=.8)+
+  facet_wrap(~variavel, scales='free')+
+  theme(legend.position = 'none')
+```
+
+
+# Dados da PNAD: Massa de Rendimentos
+## Dados da PNAD: Massa de Rendimentos
+
+Por fim, podemos pegar os dados referentes a **Massa de rendimento, real e nominal, de todos os trabalhos, habitualmente recebido por mê**, disponíveis na tabela 6392:
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+pnad_massa =
+  get_sidra(api='/t/6392/n1/all/v/6288,6293/p/all') %>%
+  mutate(date = parse_date(`Trimestre Móvel (Código)`, 
+                           format='%Y%m')) %>%
+  select(date, "Variável", Valor) %>%
+  spread("Variável", Valor) %>%
+  rename('Massa de rendimento nominal' = "Massa de rendimento nominal de todos os trabalhos, habitualmente recebido por mês, pelas pessoas de 14 anos ou mais de idade, ocupadas na semana de referência, com rendimento de trabalho",
+         "Massa de rendimento real" = 'Massa de rendimento real de todos os trabalhos, habitualmente recebido por mês, pelas pessoas de 14 anos ou mais de idade, ocupadas na semana de referência, com rendimento de trabalho') %>%
+  as_tibble()
+
+```
+
+## Dados da PNAD: Rendimento
+
+```{r, echo=T, eval=T, results='asis', fig.width=8, fig.height=4, fig.align='center', out.width="1\\linewidth", warning=FALSE, message=FALSE, size='tiny'}
+
+pnad_massa_long = 
+  pnad_massa %>%
+  gather(variavel, valor, -date)
+
+ggplot(pnad_massa_long, 
+       aes(x=date, y=valor, colour=variavel))+
+  geom_line(size=.8)+
+  facet_wrap(~variavel, scales='free')+
+  theme(legend.position = 'none')
+```
+
